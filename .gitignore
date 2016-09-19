@@ -1,0 +1,5 @@
+Test/
+Train/
+models/
+*.h5
+*.asv
