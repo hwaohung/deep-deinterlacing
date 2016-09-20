@@ -20,6 +20,8 @@ if ~exist(net_weights, 'file')
     error('Please check caffemodel is exist or not.');
 end
 
+%net_model = 'models/DeepDemosaicing_mat.prototxt';
+%net_weights = 'models/DeepDeinterlacing/DeepDemosaicing_iter_110000.caffemodel';
 % Initialize a network
 net = caffe.Net(net_model, net_weights, phase);
 
@@ -49,11 +51,11 @@ im_label = im2double(im_l);
 
 
 [w h c] = size(im_input);
-isPatch = 1;
+isPatch = 0;
 patch_size = 100;
 stride = 80;
 % TODO: 1 channel
-input_channel = 3;
+input_channel = 1;
 
 if isPatch
     % reshape blobs
