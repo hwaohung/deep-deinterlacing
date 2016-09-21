@@ -12,11 +12,9 @@ function [image] = deinterlace(field, odd)
     hdint = vision.Deinterlacer('Method', 'Linear interpolation', 'TransposedInput', false);
     
     if ~odd
-        row1 = field(1, :);
         field(1:end-1, :) = field(2:end, :);
         image = step(hdint, field);
         image(2:end, :) = image(1:end-1, :);
-        image(1, :) = row1(1, :);
     else
         image = step(hdint, field); 
     end
