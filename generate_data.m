@@ -23,9 +23,10 @@ function [] = generate_data()
 
     %% Generate data
     for i = 1:length(filepaths)
-        frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);               
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(frames, size_input, size_label, stride);
-        
+        frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
+        [resizeds1, resizeds2] = resize_frames(frames);        
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds1, size_input, size_label, stride);
+                
         if i == 1
             input_data = input_patchs;
             label_data = label_patchs;
@@ -39,6 +40,14 @@ function [] = generate_data()
             deinterlaced_data = cat(4, deinterlaced_data, deinterlaced_patchs);
             inv_mask_data = cat(4, inv_mask_data, inv_mask_patchs);
         end
+        
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds2, size_input, size_label, stride);
+        
+        input_data = cat(4, input_data, input_patchs);
+        label_data = cat(4, label_data, label_patchs);
+        interlaced_data = cat(4, interlaced_data, interlaced_patchs);
+        deinterlaced_data = cat(4, deinterlaced_data, deinterlaced_patchs);
+        inv_mask_data = cat(4, inv_mask_data, inv_mask_patchs);
     end
   
     save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data);
@@ -94,7 +103,7 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     inv_mask_patchs = zeros(size_input, size_input, 1, 1);
     count = 0;
     
-    %% Generate data pacth
+    %% Generate data
     for frameCnt = 1:cnt
         % Get prev, post field
         if frameCnt == 1
