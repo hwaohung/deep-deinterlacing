@@ -2,9 +2,9 @@ function [] = generate_data()
     clear;close all;
 
     %% Settings
-    is_train_data = 1;
-    size_input = 31;
-    size_label = 31;
+    is_train_data = 0;
+    input_size = [31, 31];
+    label_size = [31, 31];
     testFramesCnt = 30;
 
     if is_train_data
@@ -24,7 +24,7 @@ function [] = generate_data()
     %% Generate data
     for i = 1:length(filepaths)
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);               
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(frames, size_input, size_label, stride);
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(frames, input_size, label_size, stride);
         
         if i == 1
             input_data = input_patchs;
@@ -68,7 +68,7 @@ function [frames] = get_video_frames(filename, requiredCnt)
     end
 end
 
-function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(frames, size_input, size_label, stride)
+function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, input_size, label_size, stride)
     [hei, wid, cnt] = size(frames);
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
     for frameCnt = 1:cnt
@@ -87,11 +87,11 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     inv_masks = im2double(inv_masks);
     
     %% Initialization
-    input_patchs = zeros(size_input, size_input, 3, 1);
-    label_patchs = zeros(size_label, size_label, 1, 1);
-    interlaced_patchs = zeros(size_input, size_input, 1, 1);
-    deinterlaced_patchs = zeros(size_input, size_input, 1, 1);
-    inv_mask_patchs = zeros(size_input, size_input, 1, 1);
+    input_patchs = zeros(input_size(1), input_size(2), 3, 1);
+    label_patchs = zeros(label_size(1), label_size(2), 1, 1);
+    interlaced_patchs = zeros(input_size(1), input_size(2), 1, 1);
+    deinterlaced_patchs = zeros(input_size(1), input_size(2), 1, 1);
+    inv_mask_patchs = zeros(input_size(1), input_size(2), 1, 1);
     count = 0;
     
     %% Generate data pacth
@@ -126,16 +126,19 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
             pause;
         end
         %}
-        
+                
             %% Generate patchs from each
-        for x = 1:stride:hei-size_input+1
-            for y = 1:stride:wid-size_input+1
+        % Record each frame has how many patches
+        eachCnt = 0;
+        for x = 1:stride:hei-input_size(1)+1
+            for y = 1:stride:wid-input_size(2)+1
+                eachCnt = 1;
                 count = count + 1;
-                input_patchs(:, :, :, count) = input_full(x:x+size_input-1, y:y+size_input-1, 1:3);
-                label_patchs(:, :, :, count) = label_full(x:x+size_label-1, y:y+size_label-1, 1);
-                interlaced_patchs(:, :, :, count) = interlace_full(x:x+size_input-1, y:y+size_input-1, 1);
-                deinterlaced_patchs(:, :, :, count) = deinterlace_full(x:x+size_input-1, y:y+size_input-1, 1);
-                inv_mask_patchs(:, :, :, count) = inv_mask_full(x:x+size_input-1, y:y+size_input-1, 1);
+                input_patchs(:, :, :, count) = input_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1:3);
+                label_patchs(:, :, :, count) = label_full(x:x+label_size(1)-1, y:y+label_size(2)-1, 1);
+                interlaced_patchs(:, :, :, count) = interlace_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
+                deinterlaced_patchs(:, :, :, count) = deinterlace_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
+                inv_mask_patchs(:, :, :, count) = inv_mask_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
             end
         end
     end
