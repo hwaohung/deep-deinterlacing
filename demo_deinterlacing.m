@@ -10,7 +10,7 @@ psnr_list = zeros(length(filepaths), 5, 1, iter_max);
 
 for iter = 1:iter_max
     for i = 1:length(filepaths)
-        clear frames psnr_gcbis psnr_ds psnr_dsns psnr_fusions;
+        clear v frames psnr_gcbis psnr_ds psnr_dsns psnr_fusions;
         
         v = VideoReader(fullfile(folder, filepaths(i).name));
         frameCnt = 0;
@@ -39,11 +39,13 @@ for iter = 1:iter_max
             psnr_dsn = compute_psnr(frame, im_h_dsn);
             psnr_fusion = compute_psnr(frame, im_h_fusion);
             
-            figure(1), imshow(im_b); title(['Deinterlacing Interpolation:' num2str(psnr_gcbi)]);
-            figure(2), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing Reconstruction:' num2str(psnr_d)]);
-            figure(3), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(DSN):' num2str(psnr_dsn)]);
-            figure(4), imshow(im_h_fusion); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(Fusion):' num2str(psnr_fusion)]);
-            %pause(1);
+            if frameCnt == 2
+                figure(1), imshow(im_b); title(['Deinterlacing Interpolation:' num2str(psnr_gcbi)]);
+                figure(2), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing Reconstruction:' num2str(psnr_d)]);
+                figure(3), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(DSN):' num2str(psnr_dsn)]);
+                figure(4), imshow(im_h_fusion); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(Fusion):' num2str(psnr_fusion)]);
+                pause(5);
+            end
             
             psnr_gcbis(frameCnt) = psnr_gcbi;
             psnr_ds(frameCnt) = psnr_d;
