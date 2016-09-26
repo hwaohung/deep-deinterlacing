@@ -1,0 +1,23 @@
+# The train/test net protocol buffer definition
+net: "DeepDeinterlacing_net.prototxt"
+test_iter: 1020
+# Carry out testing every 1000 training iterations.
+test_interval: 1000
+# The base learning rate, momentum and the weight decay of the network.
+base_lr: 0.1
+momentum: 0.9
+weight_decay: 0.0001
+clip_gradients: 0.1
+# The learning rate policy
+lr_policy: "step"
+gamma: 0.1
+stepsize: 30000
+# Display every 100 iterations
+display: 100
+# The maximum number of iterations
+max_iter: 110000
+# snapshot intermediate results
+snapshot: 1000
+snapshot_prefix: "snapshots/snapshot"
+# solver mode: CPU or GPU
+solver_mode: GPU
