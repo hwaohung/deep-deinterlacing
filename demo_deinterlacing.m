@@ -3,35 +3,49 @@ close all; clear all;
 folder = 'Test';
 iter_max = 110;
 use_gpu = 1;
+testFramesCnt = 30;
 
 filepaths = dir(fullfile(folder, '*.avi'));
 psnr_list = zeros(length(filepaths), 5, 1, iter_max);
 
 for iter = 1:iter_max
     for i = 1:length(filepaths)
-        v = VideoReader(fullfile(folder, filepaths(i).name));
+        clear v frames psnr_gcbis psnr_ds psnr_dsns psnr_fusions;
         
+        v = VideoReader(fullfile(folder, filepaths(i).name));
         frameCnt = 0;
-        clear psnr_gcbis psnr_ds psnr_dsns psnr_fusions;
         while hasFrame(v)
             frameCnt = frameCnt + 1;
-            im_gnd = readFrame(v);            
-            im_gnd = modcrop(im_gnd, 2);
+            frame = readFrame(v);
+            frames(:, :, frameCnt) = modcrop(frame, 2);
             
-            [im_b] = interlace(im_gnd, mod(frameCnt, 2));
+            if frameCnt == testFramesCnt
+                break;
+            end
+        end
+        
+        [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, use_gpu, iter*1000);
+        
+        for frameCnt = 1:size(frames, 3)
+            frame = frames(:, :, frameCnt);
+            [im_b] = interlace(frame, mod(frameCnt, 2));
             im_b = deinterlace(im_b, mod(frameCnt, 2));
-            [im_h, im_h_dsn, im_h_fusion, running_time] = DeepDeinterlacing(im_gnd, mod(frameCnt, 2), use_gpu, iter*1000);
+            im_h = im_hs(:, :, frameCnt);
+            im_h_dsn = im_h_dsns(:, :, frameCnt);
+            im_h_fusion = im_h_fusions(:, :, frameCnt);
+                                   
+            psnr_gcbi = compute_psnr(frame, im_b);
+            psnr_d = compute_psnr(frame, im_h);
+            psnr_dsn = compute_psnr(frame, im_h_dsn);
+            psnr_fusion = compute_psnr(frame, im_h_fusion);
             
-            psnr_gcbi = compute_psnr(im_gnd(:, :, 1), im_b(:, :, 1));
-            psnr_d = compute_psnr(im_gnd(:, :, 1), im_h(:, :, 1));
-            psnr_dsn = compute_psnr(im_gnd(:, :,1), im_h_dsn(:, :, 1));
-            psnr_fusion = compute_psnr(im_gnd(:, :,1), im_h_fusion(:, :, 1));
-            
-            figure(1), imshow(im_b); title(['Deinterlacing Interpolation:' num2str(psnr_gcbi)]);
-            figure(2), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing Reconstruction:' num2str(psnr_d)]);
-            figure(3), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(DSN):' num2str(psnr_dsn)]);
-            figure(4), imshow(im_h_fusion); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(Fusion):' num2str(psnr_fusion)]);
-            pause(1);
+            if frameCnt == 2
+                figure(1), imshow(im_b); title(['Deinterlacing Interpolation:' num2str(psnr_gcbi)]);
+                figure(2), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing Reconstruction:' num2str(psnr_d)]);
+                figure(3), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(DSN):' num2str(psnr_dsn)]);
+                figure(4), imshow(im_h_fusion); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(Fusion):' num2str(psnr_fusion)]);
+                pause(5);
+            end
             
             psnr_gcbis(frameCnt) = psnr_gcbi;
             psnr_ds(frameCnt) = psnr_d;
