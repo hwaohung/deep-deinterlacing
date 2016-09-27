@@ -23,7 +23,7 @@ layer {
   top: "inv-mask"
   hdf5_data_param {
     source: "test.txt"
-    batch_size: 10
+    batch_size: 64
   }
   include: { phase: TEST }
 }

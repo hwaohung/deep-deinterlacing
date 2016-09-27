@@ -3,21 +3,21 @@ function [] = generate_data()
 
     %% Settings
     is_train_data = 0;
-    input_size = [31, 31];
-    label_size = [31, 31];
+    input_size = [32, 32];
+    label_size = [32, 32];
     testFramesCnt = 30;
 
     if is_train_data
         folder = 'Train';
         savepath = 'train.h5';
-        stride = 45;
+        stride = 32;
         chunksz = 64;
         filepaths = dir(fullfile(folder,'*.avi'));
     else
         folder = 'Test';
         savepath = 'test.h5';
-        stride = 45;
-        chunksz = 2;
+        stride = 32;
+        chunksz = 64;
         filepaths = dir(fullfile(folder,'*.avi'));
     end
 
@@ -136,18 +136,29 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
         end
         %}
                 
-            %% Generate patchs from each
+        %% Generate patchs from each
         % Record each frame has how many patches
         eachCnt = 0;
-        for x = 1:stride:hei-input_size(1)+1
-            for y = 1:stride:wid-input_size(2)+1
-                eachCnt = 1;
+        for row = 1:stride:hei
+            s_row = row;
+            if s_row + input_size(1) - 1 > hei
+                s_row = hei - input_size(1) + 1;
+            end
+
+            for col = 1:stride:wid
+                s_col = col;
+                if s_col + input_size(2) - 1 > wid
+                    s_col = wid - input_size(2) + 1;
+                end
+                
+                eachCnt = eachCnt + 1;
                 count = count + 1;
-                input_patchs(:, :, :, count) = input_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1:3);
-                label_patchs(:, :, :, count) = label_full(x:x+label_size(1)-1, y:y+label_size(2)-1, 1);
-                interlaced_patchs(:, :, :, count) = interlace_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
-                deinterlaced_patchs(:, :, :, count) = deinterlace_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
-                inv_mask_patchs(:, :, :, count) = inv_mask_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
+
+                input_patchs(:, :, :, count) = input_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
+                label_patchs(:, :, :, count) = label_full(s_row:s_row+label_size(1)-1, s_col:s_col+label_size(2)-1, :);
+                interlaced_patchs(:, :, :, count) = interlace_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
+                deinterlaced_patchs(:, :, :, count) = deinterlace_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
+                inv_mask_patchs(:, :, :, count) = inv_mask_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
             end
         end
     end
@@ -178,8 +189,8 @@ function [] = save2hdf5(savepath, chunksz, input_data, label_data, interlaced_da
     
         startloc = struct('input_data', [1,1,1,totalct+1], ...
                           'label_data', [1,1,1,totalct+1], ...
-                          'interlaced_data', [1,1,1,totalct+1],...
-                          'deinterlaced_data', [1,1,1,totalct+1],...
+                          'interlaced_data', [1,1,1,totalct+1], ...
+                          'deinterlaced_data', [1,1,1,totalct+1], ...
                           'inv_mask_data', [1,1,1,totalct+1]);
         curr_dat_sz = store2hdf5(savepath, b_input_data, b_label_data, b_interlaced_data, b_deinterlaced_data, b_inv_mask_data, ~created_flag, startloc, chunksz); 
     
