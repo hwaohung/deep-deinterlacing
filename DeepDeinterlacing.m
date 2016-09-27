@@ -1,7 +1,9 @@
 % im_1: gray image
-function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames, use_gpu, iter)
+function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames, input_channels, iter)
+    use_gpu = 1;
+    
     % Set caffe mode
-    if exist('use_gpu', 'var') && use_gpu
+    if use_gpu
         caffe.set_mode_gpu();
         % use the first gpu in this demo
         gpu_id = 0;
@@ -12,7 +14,13 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
 
     % Initialize the network
     model_dir = 'models/';
-    net_model = [model_dir 'DeepDeinterlacing_mat.prototxt'];
+    
+    if input_channels == 3
+        net_model = [model_dir 'DeepDeinterlacing_mat31.prototxt'];
+    elseif input_channels == 1
+        net_model = [model_dir 'DeepDeinterlacing_mat11.prototxt'];
+    end
+    
     net_weights = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
     phase = 'test'; % run with phase test (so that dropout isn't applied)
 
@@ -34,15 +42,15 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     if isPatch
         % Patch size
         [h ,w] = [100, 100];
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], min([h w]));
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], min([h w]), input_channels);
     else
         [h w c] = size(frames);
         % TODO: Make sure one patch
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], max([h w]));     
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], max([h w]), input_channels);     
     end
 
     % Reshape blobs
-    net.blobs('input').reshape([h w 3 1]);
+    net.blobs('input').reshape([h w input_channels 1]);
     net.blobs('label').reshape([h w 1 1]);
     net.blobs('interlace').reshape([h w 1 1]);
     net.blobs('deinterlace').reshape([h w 1 1]);
@@ -69,7 +77,7 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     caffe.reset_all();
 end
 
-function [im_h, im_h_dsn, running_time] = deepdeinterlace(net, input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs)
+function [im_h, im_h_dsn] = deepdeinterlace(net, input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs)
     [h] = size(input_patchs);
     for i = 1:size(input_patchs, 4)
         input_full = input_patchs(:, :, :, i);
@@ -79,9 +87,7 @@ function [im_h, im_h_dsn, running_time] = deepdeinterlace(net, input_patchs, lab
         inv_mask_full = inv_mask_patchs(:, :, :, i);
             
         % Feed to caffe and get output data
-        tic;
         net.forward({input_full, label_full, interlace_full, deinterlace_full, inv_mask_full});
-        running_time = toc;
     
         im_h_patch = net.blobs('output-combine').get_data();
         im_h_dsn_patch = net.blobs('output-dsn-combine').get_data();
@@ -90,7 +96,7 @@ function [im_h, im_h_dsn, running_time] = deepdeinterlace(net, input_patchs, lab
     end
 end
 
-function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, input_size, label_size, stride)
+function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, input_size, label_size, stride, input_channels)
     [hei, wid, cnt] = size(frames);
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
     for frameCnt = 1:cnt
@@ -109,7 +115,7 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     inv_masks = im2double(inv_masks);
     
     %% Initialization
-    input_patchs = zeros(input_size(1), input_size(2), 3, 1);
+    input_patchs = zeros(input_size(1), input_size(2), input_channels, 1);
     label_patchs = zeros(label_size(1), label_size(2), 1, 1);
     interlaced_patchs = zeros(input_size(1), input_size(2), 1, 1);
     deinterlaced_patchs = zeros(input_size(1), input_size(2), 1, 1);
@@ -118,25 +124,29 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     
     %% Generate data pacth
     for frameCnt = 1:cnt
-        % Get prev, post field
-        if frameCnt == 1
-            prev = deinterlaced_fields(:, :, frameCnt);
-            post = deinterlaced_fields(:, :, frameCnt+1);
-        elseif frameCnt == cnt
-            prev = deinterlaced_fields(:, :, frameCnt-1);
-            post = deinterlaced_fields(:, :, frameCnt);
-        else
-            prev = deinterlaced_fields(:, :, frameCnt-1);
-            post = deinterlaced_fields(:, :, frameCnt+1);
+        if input_channels == 3
+            % Get prev, post field
+            if frameCnt == 1
+                prev = deinterlaced_fields(:, :, frameCnt);
+                post = deinterlaced_fields(:, :, frameCnt+1);
+            elseif frameCnt == cnt
+                prev = deinterlaced_fields(:, :, frameCnt-1);
+                post = deinterlaced_fields(:, :, frameCnt);
+            else
+                prev = deinterlaced_fields(:, :, frameCnt-1);
+                post = deinterlaced_fields(:, :, frameCnt+1);
+            end
+            
+            input_full = reshape([prev, deinterlaced_fields(:, :, frameCnt), post], hei, wid, 3);
+        elseif input_channels == 1
+            input_full = deinterlaced_fields(:, :, frameCnt);
         end
         
+        label_full = frames(:, :, frameCnt);
         interlace_full = interlaced_fields(:, :, frameCnt);
         deinterlace_full = deinterlaced_fields(:, :, frameCnt);
         inv_mask_full = inv_masks(:, :, frameCnt);
-        
-        input_full = reshape([prev, deinterlace_full, post], hei, wid, 3);
-        label_full = frames(:, :, frameCnt);
-        
+                                
         % Test code for check image is ok
         %{
         if frameCnt == 2
@@ -149,18 +159,29 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
         end
         %}
                 
-            %% Generate patchs from each
+        %% Generate patchs from each
         % Record each frame has how many patches
         eachCnt = 0;
-        for x = 1:stride:hei-input_size+1
-            for y = 1:stride:wid-input_size+1
-                eachCnt = 1;
+        for row = 1:stride:hei
+            s_row = row;
+            if s_row + input_size(1) - 1 > hei
+                s_row = hei - input_size(1) + 1;
+            end
+
+            for col = 1:stride:wid
+                s_col = col;
+                if s_col + input_size(2) - 1 > wid
+                    s_col = wid - input_size(2) + 1;
+                end
+                
+                eachCnt = eachCnt + 1;
                 count = count + 1;
-                input_patchs(:, :, :, count) = input_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1:3);
-                label_patchs(:, :, :, count) = label_full(x:x+label_size(1)-1, y:y+label_size(2)-1, 1);
-                interlaced_patchs(:, :, :, count) = interlace_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
-                deinterlaced_patchs(:, :, :, count) = deinterlace_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
-                inv_mask_patchs(:, :, :, count) = inv_mask_full(x:x+input_size(1)-1, y:y+input_size(2)-1, 1);
+
+                input_patchs(:, :, :, count) = input_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
+                label_patchs(:, :, :, count) = label_full(s_row:s_row+label_size(1)-1, s_col:s_col+label_size(2)-1, :);
+                interlaced_patchs(:, :, :, count) = interlace_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
+                deinterlaced_patchs(:, :, :, count) = deinterlace_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
+                inv_mask_patchs(:, :, :, count) = inv_mask_full(s_row:s_row+input_size(1)-1, s_col:s_col+input_size(2)-1, :);
             end
         end
     end
