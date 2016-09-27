@@ -60,12 +60,30 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     im_hs = zeros(size(frames));
     im_h_dsns = zeros(size(frames));
     tic;
-    for i = 1:size(input_patchs, 4)/eachCnt           
-        [im_h, im_h_dsn] = deepdeinterlace(net, input_patchs(:, :, :, i:i+eachCnt-1), label_patchs(:, :, :, i:i+eachCnt-1), ...
-                                           interlaced_patchs(:, :, :, i:i+eachCnt-1), deinterlaced_patchs, inv_mask_patchs(:, :, :, i:i+eachCnt-1));
-            
-        im_hs(:, :, i) = reshape(im_h, size(frames, 1), size(frames, 2));
-        im_h_dsns(:, :, i) = reshape(im_h_dsn, size(frames, 1), size(frames, 2));           
+    for i = 1:size(input_patchs, 4)/eachCnt
+        [im_h_patchs, im_h_dsn_patchs] = deepdeinterlace(net, input_patchs(:, :, :, i:i+eachCnt-1), label_patchs(:, :, :, i:i+eachCnt-1), ...
+                                                         interlaced_patchs(:, :, :, i:i+eachCnt-1), deinterlaced_patchs, inv_mask_patchs(:, :, :, i:i+eachCnt-1));
+        
+        s_row = 1;
+        s_col = 1;
+        for j = 1:eachCnt
+            if s_row > size(frames, 1)
+                s_row = 1;
+                s_col = s_col + w;
+            elseif s_row + h - 1 > size(frames, 1)
+                s_row = size(frames, 1) - h + 1;
+            end
+
+            if s_col + w - 1 > size(frames, 2)
+                s_col = size(frames, 2) - w + 1;
+            end
+
+            im_h(s_row:s_row+h-1, s_col:s_col+w-1) = im_h_patchs(:, :, j);
+            im_h_dsn(s_row:s_row+h-1, s_col:s_col+w-1) = im_h_dsn_patchs(:, :, j);
+        end
+
+        im_hs(:, :, i) = im_h;
+        im_h_dsns(:, :, i) = im_h_dsn;           
     end
     running_time = toc;
     
@@ -77,8 +95,7 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     caffe.reset_all();
 end
 
-function [im_h, im_h_dsn] = deepdeinterlace(net, input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs)
-    [h] = size(input_patchs);
+function [im_h_patchs, im_h_dsn_patchs] = deepdeinterlace(net, input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs)
     for i = 1:size(input_patchs, 4)
         input_full = input_patchs(:, :, :, i);
         label_full = label_patchs(:, :, :, i);
@@ -89,10 +106,8 @@ function [im_h, im_h_dsn] = deepdeinterlace(net, input_patchs, label_patchs, int
         % Feed to caffe and get output data
         net.forward({input_full, label_full, interlace_full, deinterlace_full, inv_mask_full});
     
-        im_h_patch = net.blobs('output-combine').get_data();
-        im_h_dsn_patch = net.blobs('output-dsn-combine').get_data();
-        im_h((i-1)*h+1:i*h, :) = im_h_patch;
-        im_h_dsn((i-1)*h+1:i*h, :) = im_h_dsn_patch;
+        im_h_patchs(:, :, i) = net.blobs('output-combine').get_data();
+        im_h_dsn_patchs(:, :, i) = net.blobs('output-dsn-combine').get_data();
     end
 end
 
