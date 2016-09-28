@@ -1,12 +1,17 @@
 function [] = generate_data()
     clear;close all;
-
+    
     %% Settings
     is_train_data = 0;
     input_size = [32, 32];
     input_channels = 3;
     label_size = [32, 32];
     testFramesCnt = 30;
+    
+    % Down sample as label to train
+    method = 1;
+    % Down sample resize to original size and train
+    %method = 2;
 
     if is_train_data
         folder = 'Train';
@@ -25,7 +30,13 @@ function [] = generate_data()
     %% Generate data
     for i = 1:length(filepaths)
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
-        [resizeds1, resizeds2] = resize_frames(frames);        
+        [resizeds1, resizeds2] = resize_frames(frames);
+        
+        if method == 2
+            resizeds1 = imresize(resizeds1, 2);
+            resizeds2 = imresize(resizeds2, 2);
+        end
+        
         [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds1, input_size, label_size, stride, input_channels);
         
         if i == 1
