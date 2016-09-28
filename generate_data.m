@@ -4,6 +4,7 @@ function [] = generate_data()
     %% Settings
     is_train_data = 0;
     input_size = [32, 32];
+    input_channels = 3;
     label_size = [32, 32];
     testFramesCnt = 30;
 
@@ -25,8 +26,8 @@ function [] = generate_data()
     for i = 1:length(filepaths)
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
         [resizeds1, resizeds2] = resize_frames(frames);        
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds1, input_size, label_size, stride);
-                
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds1, input_size, label_size, stride, input_channels);
+        
         if i == 1
             input_data = input_patchs;
             label_data = label_patchs;
@@ -41,7 +42,7 @@ function [] = generate_data()
             inv_mask_data = cat(4, inv_mask_data, inv_mask_patchs);
         end
         
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds2, input_size, label_size, stride);
+        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs] = prepare_data(resizeds2, input_size, label_size, stride, input_channels);
         
         input_data = cat(4, input_data, input_patchs);
         label_data = cat(4, label_data, label_patchs);
@@ -77,7 +78,7 @@ function [frames] = get_video_frames(filename, requiredCnt)
     end
 end
 
-function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, input_size, label_size, stride)
+function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, input_size, label_size, stride, input_channels)
     [hei, wid, cnt] = size(frames);
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
     for frameCnt = 1:cnt
@@ -96,7 +97,7 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     inv_masks = im2double(inv_masks);
     
     %% Initialization
-    input_patchs = zeros(input_size(1), input_size(2), 3, 1);
+    input_patchs = zeros(input_size(1), input_size(2), input_channels, 1);
     label_patchs = zeros(label_size(1), label_size(2), 1, 1);
     interlaced_patchs = zeros(input_size(1), input_size(2), 1, 1);
     deinterlaced_patchs = zeros(input_size(1), input_size(2), 1, 1);
@@ -105,25 +106,29 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     
     %% Generate data pacth
     for frameCnt = 1:cnt
-        % Get prev, post field
-        if frameCnt == 1
-            prev = deinterlaced_fields(:, :, frameCnt);
-            post = deinterlaced_fields(:, :, frameCnt+1);
-        elseif frameCnt == cnt
-            prev = deinterlaced_fields(:, :, frameCnt-1);
-            post = deinterlaced_fields(:, :, frameCnt);
-        else
-            prev = deinterlaced_fields(:, :, frameCnt-1);
-            post = deinterlaced_fields(:, :, frameCnt+1);
+        if input_channels == 3
+            % Get prev, post field
+            if frameCnt == 1
+                prev = deinterlaced_fields(:, :, frameCnt);
+                post = deinterlaced_fields(:, :, frameCnt+1);
+            elseif frameCnt == cnt
+                prev = deinterlaced_fields(:, :, frameCnt-1);
+                post = deinterlaced_fields(:, :, frameCnt);
+            else
+                prev = deinterlaced_fields(:, :, frameCnt-1);
+                post = deinterlaced_fields(:, :, frameCnt+1);
+            end
+            
+            input_full = reshape([prev, deinterlaced_fields(:, :, frameCnt), post], hei, wid, 3);
+        elseif input_channels == 1
+            input_full = deinterlaced_fields(:, :, frameCnt);
         end
         
+        label_full = frames(:, :, frameCnt);
         interlace_full = interlaced_fields(:, :, frameCnt);
         deinterlace_full = deinterlaced_fields(:, :, frameCnt);
         inv_mask_full = inv_masks(:, :, frameCnt);
-        
-        input_full = reshape([prev, deinterlace_full, post], hei, wid, 3);
-        label_full = frames(:, :, frameCnt);
-        
+                                
         % Test code for check image is ok
         %{
         if frameCnt == 2

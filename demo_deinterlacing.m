@@ -2,7 +2,7 @@ close all; clear all;
 
 folder = 'Test';
 iter_max = 110;
-use_gpu = 1;
+input_channels = 3;
 testFramesCnt = 30;
 
 filepaths = dir(fullfile(folder, '*.avi'));
@@ -24,7 +24,7 @@ for iter = 1:iter_max
             end
         end
         
-        [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, use_gpu, iter*1000);
+        [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, input_channels, iter*1000);
         
         for frameCnt = 1:size(frames, 3)
             frame = frames(:, :, frameCnt);
