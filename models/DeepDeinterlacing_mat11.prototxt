@@ -1,33 +1,33 @@
 name: "DeepDeinterlacing"
 input: "input"
+input_dim: 64
 input_dim: 1
-input_dim: 1
-input_dim: 45
-input_dim: 45
+input_dim: 32
+input_dim: 32
 
 input: "label"
+input_dim: 64
 input_dim: 1
-input_dim: 1
-input_dim: 45
-input_dim: 45
+input_dim: 32
+input_dim: 32
 
 input: "interlace"
+input_dim: 64
 input_dim: 1
-input_dim: 1
-input_dim: 45
-input_dim: 45
+input_dim: 32
+input_dim: 32
 
 input: "deinterlace"
+input_dim: 64
 input_dim: 1
-input_dim: 1
-input_dim: 45
-input_dim: 45
+input_dim: 32
+input_dim: 32
 
 input: "inv-mask"
+input_dim: 64
 input_dim: 1
-input_dim: 1
-input_dim: 45
-input_dim: 45
+input_dim: 32
+input_dim: 32
 
 
 ## conv1
@@ -183,7 +183,7 @@ layer {
   param {    lr_mult: 0.1  }
   convolution_param {
     num_output: 1    kernel_size: 1    stride: 1    pad: 0
-    weight_filler {type: "msra" }
+    weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
 }
@@ -226,7 +226,7 @@ layer {
   param {    lr_mult: 0.1  }
   convolution_param {
     num_output: 1    kernel_size: 1    stride: 1    pad: 0
-    weight_filler {type: "msra" }
+    weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
 }

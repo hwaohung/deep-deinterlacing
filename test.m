@@ -1,3 +1,11 @@
+
+hinfo = hdf5info('train.h5');
+%tmp = hinfo.GroupHierarchy.Groups(1);
+tmp = hinfo.GroupHierarchy;
+dset = hdf5read(tmp.Datasets(2));
+return;
+
+
 filename = 'C:\Users\Johnny\Desktop\ºÓ¤h½×¤å\data\test\bowing_cif';
 v1 = VideoReader(strcat(filename, '_original', '.avi'));
 v2 = VideoReader(strcat(filename, '_interlaced', '.avi'));
