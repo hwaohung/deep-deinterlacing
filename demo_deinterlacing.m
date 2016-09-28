@@ -40,10 +40,16 @@ for iter = 1:iter_max
             psnr_fusion = compute_psnr(frame, im_h_fusion);
             
             if frameCnt == 2
-                figure(1), imshow(im_b); title([num2str(iter) '000 Deinterlacing Interpolation:' num2str(psnr_gcbi)]);
-                figure(2), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing Reconstruction:' num2str(psnr_d)]);
-                figure(3), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(DSN):' num2str(psnr_dsn)]);
-                figure(4), imshow(im_h_fusion); title([num2str(iter) '000 DeepDeinterlacing Reconstruction(Fusion):' num2str(psnr_fusion)]);
+                fig = findobj('Tag', 'My1stFigure');
+                if isempty(fig)
+                    fig = figure('Tag', 'My1stFigure', 'Name','PSNR Comparison', 'Position', [100, 100, 1049, 895]);
+                end
+                figure(fig);             
+                
+                subplot(2, 2, 1), imshow(im_b); title([num2str(iter) '000 Linear Interpolation: ' num2str(psnr_gcbi)]);
+                subplot(2, 2, 2), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing: ' num2str(psnr_d)]);
+                subplot(2, 2, 3), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing(DSN): ' num2str(psnr_dsn)]);
+                subplot(2, 2, 4), imshow(im_h_fusion); title([num2str(iter) '000 DeepDeinterlacing(Fusion): ' num2str(psnr_fusion)]);
                 %pause(5);
             end
             
