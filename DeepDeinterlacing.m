@@ -62,7 +62,8 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     tic;
     for i = 1:size(input_patchs, 4)/eachCnt
         [im_h_patchs, im_h_dsn_patchs] = deepdeinterlace(net, input_patchs(:, :, :, i:i+eachCnt-1), label_patchs(:, :, :, i:i+eachCnt-1), ...
-                                                         interlaced_patchs(:, :, :, i:i+eachCnt-1), deinterlaced_patchs, inv_mask_patchs(:, :, :, i:i+eachCnt-1));
+                                                         interlaced_patchs(:, :, :, i:i+eachCnt-1), deinterlaced_patchs(:, :, :, i:i+eachCnt-1), ...
+                                                         inv_mask_patchs(:, :, :, i:i+eachCnt-1));
         
         s_row = 1;
         s_col = 1;
