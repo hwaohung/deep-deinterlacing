@@ -1,6 +1,7 @@
 % im_1: gray image
 function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames, input_channels, iter)
     use_gpu = 1;
+    isPatch = 1;
     
     % Set caffe mode
     if use_gpu
@@ -37,18 +38,18 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     padding = (data_shape(1) - label_shape(1)) / 2;
     %}
     
-    isPatch = 0;  
-    
     if isPatch
         % Patch size
-        [h ,w] = [100, 100];
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], min([h w]), input_channels);
+        h = 32;
+        w = 32;
+        stride = min([h w]);
     else
         [h w c] = size(frames);
-        % TODO: Make sure one patch
-        [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], max([h w]), input_channels);     
+        stride = max([h w]);
     end
 
+    [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, [h w], [h w], stride, input_channels); 
+    
     % Reshape blobs
     net.blobs('input').reshape([h w input_channels 1]);
     net.blobs('label').reshape([h w 1 1]);
@@ -61,30 +62,37 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     im_h_dsns = zeros(size(frames));
     tic;
     for i = 1:size(input_patchs, 4)/eachCnt
-        [im_h_patchs, im_h_dsn_patchs] = deepdeinterlace(net, input_patchs(:, :, :, i:i+eachCnt-1), label_patchs(:, :, :, i:i+eachCnt-1), ...
-                                                         interlaced_patchs(:, :, :, i:i+eachCnt-1), deinterlaced_patchs(:, :, :, i:i+eachCnt-1), ...
-                                                         inv_mask_patchs(:, :, :, i:i+eachCnt-1));
+        [im_h_patchs, im_h_dsn_patchs] = deepdeinterlace(net, input_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), label_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
+                                                         interlaced_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), deinterlaced_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
+                                                         inv_mask_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt));
         
         s_row = 1;
         s_col = 1;
+        next = false;
         for j = 1:eachCnt
-            if s_row > size(frames, 1)
-                s_row = 1;
-                s_col = s_col + w;
-            elseif s_row + h - 1 > size(frames, 1)
+            if s_col > size(frames, 2)
+                s_row = s_row + stride;
+                s_col = 1;
+            elseif s_col + w - 1 > size(frames, 2)
+                s_col = size(frames, 2) - w + 1;
+                next = true;
+            end
+
+            if s_row + h - 1 > size(frames, 1)
                 s_row = size(frames, 1) - h + 1;
             end
-
-            if s_col + w - 1 > size(frames, 2)
-                s_col = size(frames, 2) - w + 1;
+            
+            im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patchs(:, :, j);
+            im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patchs(:, :, j);
+                        
+            if next
+                s_row = s_row + stride;
+                s_col = 1;
+                next = false;
+            else
+                s_col = s_col + stride;
             end
-
-            im_h(s_row:s_row+h-1, s_col:s_col+w-1) = im_h_patchs(:, :, j);
-            im_h_dsn(s_row:s_row+h-1, s_col:s_col+w-1) = im_h_dsn_patchs(:, :, j);
-        end
-
-        im_hs(:, :, i) = im_h;
-        im_h_dsns(:, :, i) = im_h_dsn;           
+        end      
     end
     running_time = toc;
     
