@@ -1,4 +1,5 @@
-close all; clear all;
+clear;
+close all;
 
 folder = 'Test';
 iter_max = 100;

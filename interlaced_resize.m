@@ -1,4 +1,4 @@
-function [resizeds1, resizeds2] = resize_frames(frames)
+function [resizeds1, resizeds2] = interlaced_resize(frames)
     for i = 1:size(frames, 3)
         frame = frames(:, :, i);
         if mod(i, 2) == 1
