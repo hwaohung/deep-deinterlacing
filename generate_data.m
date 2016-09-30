@@ -55,30 +55,6 @@ function [] = generate_data()
     save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data);
 end
 
-% Gray only
-function [frames] = get_video_frames(filename, requiredCnt)
-    v = VideoReader(filename);    
-    if ~exist('requiredCnt', 'var')
-        % TODO: Not sure
-        requiredCnt = v.FrameRate;
-    end
-    
-    for frameCnt = 1:requiredCnt
-    	if ~hasFrame(v)
-        	break;
-        end
-        
-        frame = readFrame(v);      
-        if size(frame, 3) > 1
-            frame = rgb2gray(frame);
-        end
-        
-        % Image even * even size(why)
-        frame = modcrop(frame, 2);
-        frames(:, :, frameCnt) = frame;
-    end
-end
-
 function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = prepare_data(frames, input_size, label_size, stride, input_channels)
     [hei, wid, cnt] = size(frames);
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
