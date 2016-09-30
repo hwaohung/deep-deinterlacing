@@ -2,7 +2,7 @@
 net: "DeepDeinterlacing_net.prototxt"
 test_iter: 1020
 # Carry out testing every 1000 training iterations.
-test_interval: 1000
+test_interval: 100000
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.1
 momentum: 0.9
@@ -15,7 +15,7 @@ stepsize: 30000
 # Display every 100 iterations
 display: 100
 # The maximum number of iterations
-max_iter: 110000
+max_iter: 100000
 # snapshot intermediate results
 snapshot: 1000
 snapshot_prefix: "snapshots/snapshot"

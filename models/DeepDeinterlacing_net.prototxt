@@ -4,9 +4,6 @@ layer {
   type: "HDF5Data"
   top: "input"
   top: "label"
-  top: "interlace"
-  top: "deinterlace"
-  top: "inv-mask"
   hdf5_data_param {
     source: "train.txt"
     batch_size: 64
@@ -18,9 +15,6 @@ layer {
   type: "HDF5Data"
   top: "input"
   top: "label"
-  top: "interlace"
-  top: "deinterlace"
-  top: "inv-mask"
   hdf5_data_param {
     source: "test.txt"
     batch_size: 64
@@ -178,44 +172,14 @@ layer {  name: "relu5_3"  type: "ReLU"  bottom: "conv5_3"  top: "conv5_3" }
 
 ## output
 layer {
-  name: "conv6"  type: "Convolution"  bottom: "conv5_3"  top: "conv6"
+  name: "conv6"  type: "Convolution"  bottom: "conv5_3"  top: "output-combine"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 1    kernel_size: 1    stride: 1    pad: 0
+    num_output: 1    kernel_size: 3    stride: 1    pad: 0
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
-}
-
-# residual learning
-layer {
-  name: "eltwise-residual"
-  type: "Eltwise"
-  bottom: "conv6"
-  bottom: "deinterlace"
-  top: "output-residual"
-  eltwise_param { operation: SUM }
-}
-
-#inverse mask
-layer {
-  name: "eltwise-mask"
-  type: "Eltwise"
-  bottom: "output-residual"
-  bottom: "inv-mask"
-  top: "output-inv-mask"
-  eltwise_param { operation: PROD }
-}
-
-#combine origin image
-layer {
-  name: "eltwise-combine"
-  type: "Eltwise"
-  bottom: "output-inv-mask"
-  bottom: "interlace"
-  top: "output-combine"
-  eltwise_param { operation: SUM }
 }
 
 ## loss
@@ -223,44 +187,14 @@ layer {  name: "loss"  type: "EuclideanLoss"  bottom: "output-combine"  bottom: 
 
 ############## DSN ##############
 layer {
-  name: "conv-dsn"  type: "Convolution"  bottom: "conv3_3"  top: "conv-dsn"
+  name: "conv-dsn"  type: "Convolution"  bottom: "conv3_3"  top: "output-dsn-combine"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 1    kernel_size: 1    stride: 1    pad: 0
+    num_output: 1    kernel_size: 3    stride: 1    pad: 0
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
-}
-
-# residual learning
-layer {
-  name: "eltwise-dsn-residual"
-  type: "Eltwise"
-  bottom: "conv-dsn"
-  bottom: "deinterlace"
-  top: "output-dsn-residual"
-  eltwise_param { operation: SUM }
-}
-
-#inverse mask
-layer {
-  name: "eltwise-dsn-mask"
-  type: "Eltwise"
-  bottom: "output-dsn-residual"
-  bottom: "inv-mask"
-  top: "output-dsn-inv-mask"
-  eltwise_param { operation: PROD }
-}
-
-#combine origin image
-layer {
-  name: "eltwise-dsn-combine"
-  type: "Eltwise"
-  bottom: "output-dsn-inv-mask"
-  bottom: "interlace"
-  top: "output-dsn-combine"
-  eltwise_param { operation: SUM }
 }
 
 ## loss
