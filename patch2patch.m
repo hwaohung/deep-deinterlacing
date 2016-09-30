@@ -1,7 +1,7 @@
 % Patch => Patch method
-function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = patch2patch(frames, window, input_channels)
+function [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, window, input_channels)
     [hei, wid, cnt] = size(frames);
-    stride = min([hei, wid]);
+    stride = min(window);
     
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
     for frameCnt = 1:cnt
@@ -20,11 +20,11 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
     inv_masks = im2double(inv_masks);
     
     %% Initialization
-    input_patchs = zeros(window(1), window(2), input_channels, 1);
-    label_patchs = zeros(window(1), window(2), 1, 1);
-    interlaced_patchs = zeros(window(1), window(2), 1, 1);
-    deinterlaced_patchs = zeros(window(1), window(2), 1, 1);
-    inv_mask_patchs = zeros(window(1), window(2), 1, 1);
+    input_patches = zeros(window(1), window(2), input_channels, 1);
+    label_patches = zeros(window(1), window(2), 1, 1);
+    interlaced_patches = zeros(window(1), window(2), 1, 1);
+    deinterlaced_patches = zeros(window(1), window(2), 1, 1);
+    inv_mask_patches = zeros(window(1), window(2), 1, 1);
     count = 0;
     
     %% Generate data pacth
@@ -70,11 +70,11 @@ function [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, in
                 eachCnt = eachCnt + 1;
                 count = count + 1;
 
-                input_patchs(:, :, :, count) = input_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
-                label_patchs(:, :, :, count) = label_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
-                interlaced_patchs(:, :, :, count) = interlace_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
-                deinterlaced_patchs(:, :, :, count) = deinterlace_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
-                inv_mask_patchs(:, :, :, count) = inv_mask_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
+                input_patches(:, :, :, count) = input_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
+                label_patches(:, :, :, count) = label_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
+                interlaced_patches(:, :, :, count) = interlace_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
+                deinterlaced_patches(:, :, :, count) = deinterlace_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
+                inv_mask_patches(:, :, :, count) = inv_mask_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
             end
         end
     end

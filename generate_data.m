@@ -89,11 +89,14 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
                 inv_mask_data = cat(4, inv_mask_data, inv_mask_patches1, inv_mask_patches2);
             end
         else      
-            [input_patches1, label_patches1, interlaced_patches1, deinterlaced_patches1, inv_mask_patches1] = patch2patch(resizeds1, window, input_channels);
+            [input_patches1, label_patches1, interlaced_patches1, deinterlaced_patches1, inv_mask_patches1] = patch2patch(frames, window, input_channels);
         
             if i == 1
                 input_data = input_patches1;
                 label_data = label_patches1;
+                interlaced_data = interlaced_patches1;
+                deinterlaced_data = deinterlaced_patches1;
+                inv_mask_data = inv_mask_patches1;
             else
                 input_data = cat(4, input_data, input_patches1);
                 label_data = cat(4, label_data, label_patches1);
