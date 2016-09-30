@@ -1,4 +1,49 @@
-function [curr_dat_sz, curr_lab_sz] = store2hdf5(filename, chunksz, create, startloc, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data) 
+function [] = save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data)
+    %% Data order rearrange
+    count = size(input_data, 4);
+    order = randperm(count);
+    input_data = input_data(:, :, :, order);
+    label_data = label_data(:, :, :, order);
+    if exist('interlaced_data','var')
+        interlaced_data = interlaced_data(:, :, :, order);
+        deinterlaced_data = deinterlaced_data(:, :, :, order);
+        inv_mask_data = inv_mask_data(:, :, :, order);
+    end
+
+    created_flag = false;
+    totalct = 0;
+
+    for batchno = 1:floor(count/chunksz)
+        last_read = (batchno-1) * chunksz;
+
+        b_input_data = input_data(:, :, :, last_read+1:last_read+chunksz);
+        b_label_data = label_data(:, :, :, last_read+1:last_read+chunksz);
+        
+        if exist('interlaced_data','var')
+            b_interlaced_data = interlaced_data(:, :, :, last_read+1:last_read+chunksz); 
+            b_deinterlaced_data = deinterlaced_data(:, :, :, last_read+1:last_read+chunksz); 
+            b_inv_mask_data = inv_mask_data(:, :, :, last_read+1:last_read+chunksz);
+            
+            startloc = struct('input_data', [1,1,1,totalct+1], ...
+                              'label_data', [1,1,1,totalct+1], ...
+                              'interlaced_data', [1,1,1,totalct+1], ...
+                              'deinterlaced_data', [1,1,1,totalct+1], ...
+                              'inv_mask_data', [1,1,1,totalct+1]);
+            curr_dat_sz = write_hdf5(savepath, chunksz, ~created_flag, startloc, b_input_data, b_label_data, b_interlaced_data, b_deinterlaced_data, b_inv_mask_data);
+        else
+            startloc = struct('input_data', [1, 1, 1, totalct+1], ...
+                              'label_data', [1, 1, 1, totalct+1]);
+            curr_dat_sz = write_hdf5(savepath, chunksz, ~created_flag, startloc, b_input_data, b_label_data); 
+        end
+    
+        created_flag = true;
+        totalct = curr_dat_sz(end);
+    end
+    
+    h5disp(savepath);
+end
+
+function [curr_dat_sz, curr_lab_sz] = write_hdf5(filename, chunksz, create, startloc, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data) 
   % *data* is W*H*C*N matrix of images should be normalized (e.g. to lie between 0 and 1) beforehand
   % *label* is D*N matrix of labels (D labels per sample) 
   % *create* [0/1] specifies whether to create file newly or to append to previously created file, useful to store information in batches when a dataset is too big to be held in memory  (default: 1)
