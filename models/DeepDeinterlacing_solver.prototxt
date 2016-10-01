@@ -1,8 +1,8 @@
 # The train/test net protocol buffer definition
 net: "DeepDeinterlacing_net.prototxt"
 test_iter: 1020
-# Carry out testing every 1000 training iterations.
-test_interval: 100000
+# Carry out testing every 2000 training iterations.
+test_interval: 2000
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.1
 momentum: 0.9
