@@ -1,10 +1,9 @@
 clear;
 close all;
 
-folder = 'Test';
 iter_max = 100;
 iter_step = 10;
-input_channels = 3;
+folder = 'Test';
 testFramesCnt = 30;
 
 filepaths = dir(fullfile(folder, '*.avi'));
@@ -18,7 +17,7 @@ for i = 1:length(filepaths)
     
     for iter_index = 1:floor(iter_max/iter_step)
         iter = iter_index * iter_step;
-        [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, input_channels, iter*1000);
+        [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
         
         psnr_gcbis = size(1, size(frames, 3));
         psnr_d = size(1, size(frames, 3));
