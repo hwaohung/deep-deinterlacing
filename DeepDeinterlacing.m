@@ -49,6 +49,7 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     if patch_method == 1
         [im_hs, im_h_dsns] = patch_deinterlace(net, frames, input_channels);
     else
+        [im_hs, im_h_dsns] = pixel_deinterlace(net, frames, input_channels);
     end
     running_time = toc;
     
@@ -58,6 +59,38 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
 
     % call caffe.reset_all() to reset caffe
     caffe.reset_all();
+end
+
+function [im_hs, im_h_dsns] = pixel_deinterlace(net, frames, input_channels)
+    window = 3;
+    
+    [input_patches, label_patches, eachCnt] = patch2pixel(frames, window, input_channels); 
+    
+    % Reshape blobs
+    net.blobs('input').reshape([window window input_channels 1]);
+    net.blobs('label').reshape([1 1 1 1]);
+    net.reshape();
+    
+    im_hs = zeros(size(frames));
+    im_h_dsns = zeros(size(frames));
+    for i = 1:size(frames, 3)
+        [im_h_patches, im_h_dsn_patches] = predict_patches(net, input_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), label_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt));
+                       
+        im_h_patches = reshape(im_h_patches, size(frames, 2), size(frames, 1)/2);
+        im_h_dsn_patches = reshape(im_h_dsn_patches, size(frames, 2), size(frames, 1)/2);
+        im_h_patches = transpose(im_h_patches);
+        im_h_dsn_patches = transpose(im_h_dsn_patches);
+        
+        im_hs(:, :, i) = frames(:, :, i);
+        im_h_dsns(:, :, i) = frames(:, :, i);
+        if mod(i, 2) == 1
+            im_hs(2:2:end, :, i) = im_h_patches;
+            im_h_dsns(2:2:end, :, i) = im_h_dsn_patches;
+        else
+            im_hs(1:2:end, :, i) = im_h_patches;
+            im_h_dsns(1:2:end, :, i) = im_h_dsn_patches;
+        end
+    end
 end
 
 function [im_hs, im_h_dsns] = patch_deinterlace(net, frames, input_channels)
@@ -73,7 +106,7 @@ function [im_hs, im_h_dsns] = patch_deinterlace(net, frames, input_channels)
         stride = max([h w]);
     end
     
-    [input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs, eachCnt] = patch2patch(frames, [h w], input_channels); 
+    [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, [h w], input_channels); 
     
     % Reshape blobs
     net.blobs('input').reshape([h w input_channels 1]);
@@ -85,10 +118,10 @@ function [im_hs, im_h_dsns] = patch_deinterlace(net, frames, input_channels)
     
     im_hs = zeros(size(frames));
     im_h_dsns = zeros(size(frames));
-    for i = 1:size(input_patchs, 4)/eachCnt
-        [im_h_patchs, im_h_dsn_patchs] = predict_patches(net, input_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), label_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
-                                                         interlaced_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), deinterlaced_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
-                                                         inv_mask_patchs(:, :, :, (i-1)*eachCnt+1:i*eachCnt));
+    for i = 1:size(input_patches, 4)/eachCnt
+        [im_h_patches, im_h_dsn_patches] = predict_patches(net, input_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), label_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
+                                                           interlaced_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), deinterlaced_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
+                                                           inv_mask_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt));
         
         s_row = 1;
         s_col = 1;
@@ -106,8 +139,8 @@ function [im_hs, im_h_dsns] = patch_deinterlace(net, frames, input_channels)
                 s_row = size(frames, 1) - h + 1;
             end
             
-            im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patchs(:, :, j);
-            im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patchs(:, :, j);
+            im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patches(:, :, j);
+            im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patches(:, :, j);
                         
             if next
                 s_row = s_row + stride;
@@ -120,31 +153,31 @@ function [im_hs, im_h_dsns] = patch_deinterlace(net, frames, input_channels)
     end
 end
 
-function [im_h_patchs, im_h_dsn_patchs] = predict_patches(net, input_patchs, label_patchs, interlaced_patchs, deinterlaced_patchs, inv_mask_patchs)
-    if exist('interlaced_patchs','var')
-        for i = 1:size(input_patchs, 4)
-            input_full = input_patchs(:, :, :, i);
-            label_full = label_patchs(:, :, :, i);
-            interlace_full = interlaced_patchs(:, :, :, i);
-            deinterlace_full = deinterlaced_patchs(:, :, :, i);
-            inv_mask_full = inv_mask_patchs(:, :, :, i);
+function [im_h_patches, im_h_dsn_patches] = predict_patches(net, input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches)
+    if exist('interlaced_patches','var')
+        for i = 1:size(input_patches, 4)
+            input_full = input_patches(:, :, :, i);
+            label_full = label_patches(:, :, :, i);
+            interlace_full = interlaced_patches(:, :, :, i);
+            deinterlace_full = deinterlaced_patches(:, :, :, i);
+            inv_mask_full = inv_mask_patches(:, :, :, i);
             
             % Feed to caffe and get output data
             net.forward({input_full, label_full, interlace_full, deinterlace_full, inv_mask_full});
     
-            im_h_patchs(:, :, i) = net.blobs('output-combine').get_data();
-            im_h_dsn_patchs(:, :, i) = net.blobs('output-dsn-combine').get_data();
+            im_h_patches(:, :, i) = net.blobs('output-combine').get_data();
+            im_h_dsn_patches(:, :, i) = net.blobs('output-dsn-combine').get_data();
         end
     else
-        for i = 1:size(input_patchs, 4)
-            input_full = input_patchs(:, :, :, i);
-            label_full = label_patchs(:, :, :, i);
+        for i = 1:size(input_patches, 4)
+            input_full = input_patches(:, :, :, i);
+            label_full = label_patches(:, :, :, i);
             
             % Feed to caffe and get output data
             net.forward({input_full, label_full});
     
-            im_h_patchs(:, :, i) = net.blobs('output-combine').get_data();
-            im_h_dsn_patchs(:, :, i) = net.blobs('output-dsn-combine').get_data();
+            im_h_patches(:, :, i) = net.blobs('output-combine').get_data();
+            im_h_dsn_patches(:, :, i) = net.blobs('output-dsn-combine').get_data();
         end
     end
 end
