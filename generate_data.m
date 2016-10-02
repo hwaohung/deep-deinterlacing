@@ -4,7 +4,7 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 0;
-    self_learning = 1;
+    self_learning = 0;
     is_train_data = 1;
     input_channels = 3;
     testFramesCnt = 30;
@@ -18,11 +18,11 @@ function [] = generate_data()
     if is_train_data
         folder = 'Train';
         savepath = 'train.h5';
-        chunksz = 64;
+        chunksz = 2048;
     else
         folder = 'Test';
         savepath = 'test.h5';
-        chunksz = 64;
+        chunksz = 2048;
     end
     
     filepaths = dir(fullfile(folder,'*.avi'));
@@ -48,7 +48,7 @@ function [] = gen_patch2pixel_data(folder, filepaths, savepath, chunksz, testFra
                 label_data = cat(4, label_patches1, label_patches2);
             else
                 input_data = cat(4, input_data, input_patches1, input_patches2);
-                label_data = cat(4, input_data, label_patches1, label_patches2);
+                label_data = cat(4, label_data, label_patches1, label_patches2);
             end
         else      
             [input_patches1, label_patches1] = patch2pixel(frames, window, input_channels);
@@ -58,7 +58,7 @@ function [] = gen_patch2pixel_data(folder, filepaths, savepath, chunksz, testFra
                 label_data = label_patches1;
             else
                 input_data = cat(4, input_data, input_patches1);
-                label_data = cat(4, input_data, label_patches1);
+                label_data = cat(4, label_data, label_patches1);
             end
         end
     end
