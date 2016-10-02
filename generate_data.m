@@ -4,7 +4,7 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 0;
-    self_learning = 0;
+    self_learning = 1;
     is_train_data = 1;
     input_channels = 3;
     testFramesCnt = 30;
@@ -42,7 +42,7 @@ function [] = gen_patch2pixel_data(folder, filepaths, savepath, chunksz, testFra
             [resizeds1, resizeds2] = interlaced_resize(frames);        
             [input_patches1, label_patches1] = patch2pixel(resizeds1, window, input_channels);
             [input_patches2, label_patches2] = patch2pixel(resizeds2, window, input_channels);
-        
+                                    
             if i == 1
                 input_data = cat(4, input_patches1, input_patches2);
                 label_data = cat(4, label_patches1, label_patches2);

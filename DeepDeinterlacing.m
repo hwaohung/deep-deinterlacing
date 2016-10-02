@@ -65,7 +65,7 @@ function [im_hs, im_h_dsns] = pixel_deinterlace(net, frames, input_channels)
     cutting = 8;
     
     [h, w, c] = size(frames);
-    [input_patches, label_patches, eachCnt] = patch2pixel(frames, window, input_channels); 
+    [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2pixel(frames, window, input_channels); 
     
     total = (h/2)*w;
     step = int32(total/cutting);
@@ -81,6 +81,7 @@ function [im_hs, im_h_dsns] = pixel_deinterlace(net, frames, input_channels)
     for i = 1:c
         curr_input_patches = input_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt);
         curr_label_patches = label_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt);
+        curr_deinterlaced_patches = deinterlaced_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt);
         for j = 1:step:total
             [tmp1, tmp2] = predict_patches(net, curr_input_patches(:, :, :, j:j+step-1), curr_label_patches(:, :, :, j:j+step-1));
             
@@ -92,7 +93,7 @@ function [im_hs, im_h_dsns] = pixel_deinterlace(net, frames, input_channels)
                 im_h_dsn_patches = cat(4, im_h_dsn_patches, tmp2);
             end
         end
-                       
+        
         im_h_patches = reshape(im_h_patches, w, h/2);
         im_h_dsn_patches = reshape(im_h_dsn_patches, w, h/2);
         im_h_patches = transpose(im_h_patches);
@@ -100,12 +101,18 @@ function [im_hs, im_h_dsns] = pixel_deinterlace(net, frames, input_channels)
         
         im_hs(:, :, i) = frames(:, :, i);
         im_h_dsns(:, :, i) = frames(:, :, i);
+        
+        padding = (window-1)/2;
+        tmp = curr_deinterlaced_patches;
+        tmp = reshape(tmp, w, h/2);
+        tmp = transpose(tmp);
+                
         if mod(i, 2) == 1
-            im_hs(2:2:end, :, i) = im_h_patches;
-            im_h_dsns(2:2:end, :, i) = im_h_dsn_patches;
+            im_hs(2:2:end, :, i) = tmp + im_h_patches;
+            im_h_dsns(2:2:end, :, i) = tmp + im_h_dsn_patches;
         else
-            im_hs(1:2:end, :, i) = im_h_patches;
-            im_h_dsns(1:2:end, :, i) = im_h_dsn_patches;
+            im_hs(1:2:end, :, i) = tmp + im_h_patches;
+            im_h_dsns(1:2:end, :, i) = tmp + im_h_dsn_patches;
         end
     end
 end

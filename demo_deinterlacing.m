@@ -41,7 +41,7 @@ for i = 1:length(filepaths)
             psnr_dsns(frameCnt) = psnr_dsn;
             psnr_fusions(frameCnt) = psnr_fusion;
             
-            if frameCnt == 2
+            if frameCnt == 1
                 fig = findobj('Tag', 'My1stFigure');
                 if isempty(fig)
                     fig = figure('Tag', 'My1stFigure', 'Name','PSNR Comparison', 'Position', [100, 100, 1049, 895]);

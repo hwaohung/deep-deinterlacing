@@ -1,6 +1,6 @@
 % Patch => Pixel method
 % Note: window should be odd integer and greater equal than 3
-function [input_patches, label_patches, eachCnt] = patch2pixel(frames, window, input_channels)
+function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2pixel(frames, window, input_channels)
     [hei, wid, cnt] = size(frames);
     
     %% Prepare required data
@@ -20,6 +20,7 @@ function [input_patches, label_patches, eachCnt] = patch2pixel(frames, window, i
     %% Initialization
     input_patches = zeros(window, window, input_channels, 1);
     label_patches = zeros(1, 1, 1, 1);
+    deinterlaced_patches = zeros(1, 1, 1, 1);
     count = 0;
     
     %% Generate data pacth
@@ -66,7 +67,32 @@ function [input_patches, label_patches, eachCnt] = patch2pixel(frames, window, i
                 p_e_col = (col + padding) + padding;
                 input_patches(:, :, :, count) = input_full(p_s_row:p_e_row, p_s_col:p_e_col, :);
                 label_patches(:, :, :, count) = label_full(row, col, :);
+                deinterlaced_patches(:, :, :, count) = input_full(row+padding, col+padding, 2);
             end
         end
+    end
+    
+    % Diff method
+    for j = 1:size(input_patches, 4)
+        label_patches(:, :, :, j) = label_patches(:, :, :, j) - input_patches(padding+1, padding+1, 2, j);
+        mean_value = input_patches(:, :, :, j);
+        mean_value = mean(mean_value(:));
+        input_patches(:, :, :, j) = input_patches(:, :, :, j) - mean_value;
+        
+        % diff 2
+        %{
+        label_patches(:, :, :, j) = label_patches(:, :, :, j) - input_patches(padding+1, padding+1, 2, j);
+        mean_value = input_patches(:, :, 1, j);
+        mean_value = mean(mean_value(:));
+        input_patches(:, :, 1, j) = input_patches(:, :, 1, j) - mean_value;
+        
+        mean_value = input_patches(:, :, 2, j);
+        mean_value = mean(mean_value(:));
+        input_patches(:, :, 2, j) = input_patches(:, :, 2, j) - mean_value;
+        
+        mean_value = input_patches(:, :, 3, j);
+        mean_value = mean(mean_value(:));
+        input_patches(:, :, 3, j) = input_patches(:, :, 3, j) - mean_value;
+        %}
     end
 end
