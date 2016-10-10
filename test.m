@@ -1,33 +1,17 @@
-
-hinfo = hdf5info('train.h5');
-%tmp = hinfo.GroupHierarchy.Groups(1);
-tmp = hinfo.GroupHierarchy;
-dset = hdf5read(tmp.Datasets(2));
-return;
-
-
-filename = 'C:\Users\Johnny\Desktop\碩士論文\data\test\bowing_cif';
+filename = 'C:\Users\Johnny\Desktop\碩士論文\data\test\akiyo_cif';
 v1 = VideoReader(strcat(filename, '_original', '.avi'));
-v2 = VideoReader(strcat(filename, '_interlaced', '.avi'));
 
 i = 0;
 while hasFrame(v1)
     i = i + 1;
     frame1 = readFrame(v1);
-    %frame2 = readFrame(v2);
-    [frame2] = interlace(frame1, mod(i, 2));
-        
+    frame2 = deinterlace(frame1, mod(i, 2));
+    
+    psnrs(i) = compute_psnr(frame1, frame2);
     frames(:, :, i) = frame2;
+    
+    %figure(1), imshow(frame1); title('Original');
+    figure(2), imshow(frame2); title('Deinterlaced');
 end
 
-
-[resizeds1, resizeds2] = resize_frames(frames);
-for i = 1:size(resizeds1, 3)
-    figure(1), imshow(resizeds1(:, :, i)); title('resizeds1');
-    figure(2), imshow(resizeds2(:, :, i)); title('resizeds2');
-    pause;
-end
-
-%hdint = vision.Deinterlacer;
-%hdint = vision.Deinterlacer('Method', 'Linear interpolation', 'TransposedInput', false);
-%y = step(hdint, frame2);
+sum(psnrs(:))/size(psnrs, 2)

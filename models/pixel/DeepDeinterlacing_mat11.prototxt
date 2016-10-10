@@ -1,12 +1,12 @@
 name: "DeepDeinterlacing"
 input: "input"
-input_dim: 64
-input_dim: 3
-input_dim: 3
-input_dim: 3
+input_dim: 2048
+input_dim: 1
+input_dim: 5
+input_dim: 5
 
 input: "label"
-input_dim: 64
+input_dim: 2048
 input_dim: 1
 input_dim: 1
 input_dim: 1
@@ -91,99 +91,17 @@ layer {  name: "conv3_3"  type: "Convolution"  bottom: "conv3_2"  top: "conv3_3"
 }
 layer {  name: "relu3_3"  type: "ReLU"  bottom: "conv3_3"  top: "conv3_3"}
 
-##conv4
-layer {  name: "conv4_1"  type: "Convolution"  bottom: "conv3_3"  top: "conv4_1"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler {type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu4_1"  type: "ReLU"  bottom: "conv4_1"  top: "conv4_1"}
-
-layer {  name: "conv4_2"  type: "Convolution"  bottom: "conv4_1"  top: "conv4_2"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler {type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu4_2"  type: "ReLU"  bottom: "conv4_2"  top: "conv4_2"}
-
-layer {  name: "conv4_3"  type: "Convolution"  bottom: "conv4_2"  top: "conv4_3"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler {type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu4_3"  type: "ReLU"  bottom: "conv4_3"  top: "conv4_3"}
-##conv5
-layer {  name: "conv5_1"  type: "Convolution"  bottom: "conv4_3"  top: "conv5_1"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler {type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu5_1"  type: "ReLU"  bottom: "conv5_1"  top: "conv5_1"}
-
-layer {  name: "conv5_2"  type: "Convolution"  bottom: "conv5_1"  top: "conv5_2"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler {type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu5_2"  type: "ReLU"  bottom: "conv5_2"  top: "conv5_2"}
-
-layer {  name: "conv5_3"  type: "Convolution"  bottom: "conv5_2"  top: "conv5_3"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler {type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu5_3"  type: "ReLU"  bottom: "conv5_3"  top: "conv5_3"}
-
 ## output
 layer {
-  name: "conv6"  type: "Convolution"  bottom: "conv5_3"  top: "output-combine"
+  name: "conv-output"  type: "Convolution"  bottom: "conv3_3"  top: "output-combine"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 1    kernel_size: 3    stride: 1    pad: 0
+    num_output: 1    kernel_size: 5    stride: 1    pad: 0
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
 }
 
 ## loss
-layer {  name: "loss"  type: "EuclideanLoss"  bottom: "output-combine"  bottom: "label"  top: "loss" loss_weight: 0.7 }
-
-############## DSN ##############
-layer {
-  name: "conv-dsn"  type: "Convolution"  bottom: "conv3_3"  top: "output-dsn-combine"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 1    kernel_size: 3    stride: 1    pad: 0
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-
-## loss
-layer { name: "loss-dsn"  type: "EuclideanLoss"  bottom: "output-dsn-combine"  bottom: "label"  top: "loss-dsn" loss_weight: 0.3 }
+layer {  name: "loss"  type: "EuclideanLoss"  bottom: "output-combine"  bottom: "label"  top: "loss" loss_weight: 1.0 }

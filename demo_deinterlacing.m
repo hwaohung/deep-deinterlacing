@@ -56,6 +56,9 @@ for i = 1:length(filepaths)
             end
         end
         
+        t1(i, :) = psnr_gcbis(:);
+        t2(i, :) = psnr_ds(:);
+        
         psnr_list(i,1,:,iter_index) = iter;
         psnr_list(i,2,:,iter_index) = mean(psnr_gcbis(:));
         psnr_list(i,3,:,iter_index) = mean(psnr_ds(:));
