@@ -15,7 +15,7 @@ for i = 1:length(filepaths)
     %[resizeds1, resizeds2] = interlaced_resize(frames);
     %frames = cat(4, resizeds1, resizeds2);
     
-    for iter_index = 1:floor(iter_max/iter_step)
+    for iter_index = 10:floor(iter_max/iter_step)
         iter = iter_index * iter_step;
         [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
         

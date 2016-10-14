@@ -12,12 +12,12 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = new_pat
     deinterlaced_fields = im2double(deinterlaced_fields);
     
     % Do padding
-    window = 5;
+    window = 3;
     padding = (window-1) / 2;
     deinterlaced_fields = padarray(deinterlaced_fields, [padding, padding], 'symmetric');
     
     %% Initialization
-    input_patches = zeros(window, window, 1, 1);
+    input_patches = zeros(4, 4, 1, 1);
     label_patches = zeros(1, 1, 1, 1);
     deinterlaced_patches = zeros(1, 1, 1, 1);
     count = 0;
@@ -76,10 +76,10 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = new_pat
                 p_s_col = (col - padding) + padding;
                 p_e_col = (col + padding) + padding;
                 
-                input_patches(1, :, :, count) = input_full(row+padding, p_s_col:p_e_col, 2);
-                input_patches(2, :, :, count) = input_full(p_s_row, p_s_col:p_e_col, 3);
-                input_patches(3, :, :, count) = input_full(p_e_row, p_s_col:p_e_col, 3);
-                input_patches(4, :, :, count) = input_full(row+padding, p_s_col:p_e_col, 4);
+                input_patches(1, 1:3, :, count) = input_full(row+padding, p_s_col:p_e_col, 2);
+                input_patches(2, 1:3, :, count) = input_full(p_s_row, p_s_col:p_e_col, 3);
+                input_patches(3, 1:3, :, count) = input_full(p_e_row, p_s_col:p_e_col, 3);
+                input_patches(4, 1:3, :, count) = input_full(row+padding, p_s_col:p_e_col, 4);
                 
                 seq1 = sum((input_full(p_s_row, p_s_col:p_e_col, 1) - input_full(p_s_row, p_s_col:p_e_col, 3)) .^ 2) + ...
                        sum((input_full(p_e_row, p_s_col:p_e_col, 1) - input_full(p_e_row, p_s_col:p_e_col, 3)) .^ 2);
@@ -89,8 +89,8 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = new_pat
                        sum((input_full(p_e_row, p_s_col:p_e_col, 5) - input_full(p_e_row, p_s_col:p_e_col, 3)) .^ 2);
                 seq2 = seq2 / (2*window);
                 
-                input_patches(5, 1, :, count) = seq1;
-                input_patches(5, 2, :, count) = seq2;
+                input_patches(1, 4, :, count) = seq1;
+                input_patches(2, 4, :, count) = seq2;
                 
                 % Mod1
                 %input_patches(5, 3, :, count) = input_full(row+padding, col+padding, 3);

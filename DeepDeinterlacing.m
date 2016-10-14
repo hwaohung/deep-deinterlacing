@@ -56,7 +56,7 @@ function [im_hs, im_h_dsns] = new_pixel_deinterlace(net, frames)
     step = int32(total/cutting);
     
     % Reshape blobs
-    net.blobs('input').reshape([window window 1 step]);
+    net.blobs('input').reshape([4 4 1 step]);
     net.blobs('label').reshape([1 1 1 step]);
     net.reshape();
     
