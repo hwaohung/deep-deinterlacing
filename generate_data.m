@@ -4,7 +4,7 @@ function [] = generate_data()
     
     %% Settings
     is_train_data = 1;
-    testFramesCnt = 30;
+    testFramesCnt = 30; 
 
     if is_train_data
         folder = 'Train';
@@ -26,6 +26,11 @@ function [] = gen_new_patch2pixel_data(folder, filepaths, savepath, chunksz, tes
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
         
         [input_patches1, label_patches1] = new_patch2pixel(frames);
+        
+        % Remove condition(for calssify data usage)
+        indexes = eval_t(input_patches1, 0.027, 1);
+        input_patches1 = input_patches1(:, :, :, indexes);
+        label_patches1 = label_patches1(:, :, :, indexes);
         
         if i == 1
             input_data = input_patches1;

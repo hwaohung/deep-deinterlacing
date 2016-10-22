@@ -1,12 +1,12 @@
 name: "DeepDeinterlacing"
 input: "input"
-input_dim: 2048
+input_dim: 64
 input_dim: 1
-input_dim: 5
-input_dim: 5
+input_dim: 4
+input_dim: 4
 
 input: "label"
-input_dim: 2048
+input_dim: 64
 input_dim: 1
 input_dim: 1
 input_dim: 1

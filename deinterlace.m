@@ -55,5 +55,77 @@ function [image] = deinterlace(field, odd)
             tmp = imresize(tmp, 2);
             image(2:2:end, :) = tmp(2:2:end, :);
         end
+    % ELA
+    elseif method == 4
+        field = im2double(field);
+        image = field;
+        padding = 1;
+        field = padarray(field, [padding, padding], 'symmetric');
+        
+        p1 = [0, 1, 0; ...
+              0, 0, 0; ...
+              0, 0, -1];
+          
+        p2 = [1, 0, 0; ...
+              0, 0, 0; ...
+              0, -1, 0];
+          
+        q1 = [0, 0, 1; ...
+              0, 0, 0; ...
+              0, -1, 0];
+        
+        q2 = [0, 1, 0; ...
+              0, 0, 0; ...
+              -1, 0, 0];
+          
+        p = abs(conv2(field, p1, 'valid')) + abs(conv2(field, p2, 'valid'));
+        q = abs(conv2(field, q1, 'valid')) + abs(conv2(field, q2, 'valid'));
+                       
+        c1 = [1, 0, 0; ...
+              0, 0, 0; ...
+              0, 0, -1];
+          
+        c2 = [0, 1, 0; ...
+              0, 0, 0; ...
+              0, -1, 0];
+          
+        c3 = [0, 0, 1; ...
+              0, 0, 0; ...
+              -1, 0, 0];
+                
+        c1 = abs(conv2(field, c1, 'valid'));
+        c2 = abs(conv2(field, c2, 'valid'));
+        c3 = abs(conv2(field, c3, 'valid'));
+        
+        if ~odd
+            s_i = 1;
+        else
+            s_i = 2;
+        end     
+                
+        for i = s_i:2:size(image, 1)
+            for j = 1:size(image, 2)
+                if p(i, j) > q(i, j)
+                    if c3(i, j) >= c2(i, j)
+                        k = 0;
+                    else
+                        k = -1;
+                    end
+                elseif p < q
+                    if c2(i, j) >= c1(i, j)
+                        k = 1;
+                    else
+                        k = 0;
+                    end
+                else
+                    [t, k] = min([c3(i, j), c2(i, j), c1(i, j)]);
+                    k = k-2;
+                end
+                                
+                image(i, j) = (field(i+padding-1, j+padding-k) + field(i+padding+1, j+padding+k)) / 2;
+            end
+        end
+        
+        image = uint8(image * 255);
     end
 end
