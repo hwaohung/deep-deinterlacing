@@ -24,6 +24,26 @@ function [image] = deinterlace(field, odd)
     elseif method == 2
         field = im2double(field);
         image = field;
+        mask = [0.5; 0.5];
+        
+        if ~odd
+            field = field(2:2:end, :);
+            interpolation = conv2(field, mask, 'valid');
+            image(3:2:end-1, :) = interpolation;
+            image(1, :) = image(2, :);
+        else
+            field = field(1:2:end, :);
+            interpolation = conv2(field, mask, 'valid');
+            image(2:2:end-1, :) = interpolation;
+            image(end, :) = image(end-1, :);
+        end
+        
+        image = im2uint8(image);
+        
+        % Gaussian method
+        %{
+        field = im2double(field);
+        image = field;
         window = 3;
         padding = (window-1) / 2;
         mask = fspecial('gaussian', [2, window]);
@@ -40,19 +60,21 @@ function [image] = deinterlace(field, odd)
             image(2:2:end, :) = interpolation(2:end, :);
         end
         
-        image = uint8(image * 255);
+        image = im2uint8(image);
+        %}
     elseif method == 3
+        % Bicubic interpolation
         if ~odd
             image = field;
             tmp = field(2:2:end, :);
             tmp = tmp(:, 2:2:end);
-            tmp = imresize(tmp, 2);
+            tmp = imresize(tmp, 2, 'bicubic');
             image(1:2:end, :) = tmp(1:2:end, :);
         else
             image = field;
             tmp = field(1:2:end, :);
             tmp = tmp(:, 1:2:end);
-            tmp = imresize(tmp, 2);
+            tmp = imresize(tmp, 2, 'bicubic');
             image(2:2:end, :) = tmp(2:2:end, :);
         end
     % ELA
@@ -61,7 +83,7 @@ function [image] = deinterlace(field, odd)
         image = field;
         padding = 1;
         field = padarray(field, [padding, padding], 'symmetric');
-        
+                
         p1 = [0, 1, 0; ...
               0, 0, 0; ...
               0, 0, -1];
@@ -111,7 +133,7 @@ function [image] = deinterlace(field, odd)
                     else
                         k = -1;
                     end
-                elseif p < q
+                elseif p(i, j) < q(i, j)
                     if c2(i, j) >= c1(i, j)
                         k = 1;
                     else
@@ -126,6 +148,6 @@ function [image] = deinterlace(field, odd)
             end
         end
         
-        image = uint8(image * 255);
+        image = im2uint8(image);
     end
 end

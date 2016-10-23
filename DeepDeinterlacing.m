@@ -11,20 +11,6 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     else
         caffe.set_mode_cpu();
     end
-
-    % Initialize the network
-    model_dir = 'models/';
-    
-    net_model = [model_dir 'pixel/'];
-    net_model = [net_model 'DeepDeinterlacing_mat11.prototxt'];
-    
-    net_weights = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
-
-    if ~exist(net_weights, 'file')
-        error('Please check caffemodel is exist or not.');
-    end
-
-    net = caffe.Net(net_model, net_weights, 'test');
     
     tic;
     [im_hs, im_h_dsns] = new_pixel_deinterlace(frames, iter);
