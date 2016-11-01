@@ -108,119 +108,6 @@ layer {  name: "conv3_3"  type: "Convolution"  bottom: "conv3_2"  top: "conv3_3"
 }
 layer {  name: "relu3_3"  type: "ReLU"  bottom: "conv3_3"  top: "conv3_3" }
 
-##conv4
-layer {  name: "conv4_1"  type: "Convolution"  bottom: "conv3_3"  top: "conv4_1"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu4_1"  type: "ReLU"  bottom: "conv4_1"  top: "conv4_1" }
-
-layer {  name: "conv4_2"  type: "Convolution"  bottom: "conv4_1"  top: "conv4_2"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu4_2"  type: "ReLU"  bottom: "conv4_2"  top: "conv4_2" }
-
-layer {  name: "conv4_3"  type: "Convolution"  bottom: "conv4_2"  top: "conv4_3"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu4_3"  type: "ReLU"  bottom: "conv4_3"  top: "conv4_3" }
-
-##conv5
-layer {  name: "conv5_1"  type: "Convolution"  bottom: "conv4_3"  top: "conv5_1"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu5_1"  type: "ReLU"  bottom: "conv5_1"  top: "conv5_1" }
-
-layer {  name: "conv5_2"  type: "Convolution"  bottom: "conv5_1"  top: "conv5_2"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu5_2"  type: "ReLU"  bottom: "conv5_2"  top: "conv5_2" }
-
-layer {  name: "conv5_3"  type: "Convolution"  bottom: "conv5_2"  top: "conv5_3"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 128    kernel_size: 3    stride: 1    pad: 1
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-layer {  name: "relu5_3"  type: "ReLU"  bottom: "conv5_3"  top: "conv5_3" }
-
-## output
-layer {
-  name: "conv6"  type: "Convolution"  bottom: "conv5_3"  top: "conv6"
-  param {    lr_mult: 1  }
-  param {    lr_mult: 0.1  }
-  convolution_param {
-    num_output: 1    kernel_size: 1    stride: 1    pad: 0
-    weight_filler { type: "msra" }
-    bias_filler {      type: "constant"      value: 0    }
-  }
-}
-
-# residual learning
-layer {
-  name: "eltwise-residual"
-  type: "Eltwise"
-  bottom: "conv6"
-  bottom: "deinterlace"
-  top: "output-residual"
-  eltwise_param { operation: SUM }
-}
-
-#inverse mask
-layer {
-  name: "eltwise-mask"
-  type: "Eltwise"
-  bottom: "output-residual"
-  bottom: "inv-mask"
-  top: "output-inv-mask"
-  eltwise_param { operation: PROD }
-}
-
-#combine origin image
-layer {
-  name: "eltwise-combine"
-  type: "Eltwise"
-  bottom: "output-inv-mask"
-  bottom: "interlace"
-  top: "output-combine"
-  eltwise_param { operation: SUM }
-}
-
-## loss
-layer {  name: "loss"  type: "EuclideanLoss"  bottom: "output-combine"  bottom: "label"  top: "loss" loss_weight: 0.7 }
-
 ############## DSN ##############
 layer {
   name: "conv-dsn"  type: "Convolution"  bottom: "conv3_3"  top: "conv-dsn"
@@ -259,9 +146,9 @@ layer {
   type: "Eltwise"
   bottom: "output-dsn-inv-mask"
   bottom: "interlace"
-  top: "output-dsn-combine"
+  top: "output-combine"
   eltwise_param { operation: SUM }
 }
 
 ## loss
-layer { name: "loss-dsn"  type: "EuclideanLoss"  bottom: "output-dsn-combine"  bottom: "label"  top: "loss-dsn" loss_weight: 0.3 }
+layer { name: "loss-dsn"  type: "EuclideanLoss"  bottom: "output-combine"  bottom: "label"  top: "loss-dsn" loss_weight: 1 }

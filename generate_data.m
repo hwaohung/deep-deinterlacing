@@ -3,14 +3,14 @@ function [] = generate_data()
     close all;
     
     %% Settings
-    patch_method = 0;
-    self_learning = 1;
-    is_train_data = 1;
+    patch_method = 1;
+    self_learning = 0;
+    is_train_data = 0;
     input_channels = 3;
     testFramesCnt = 30;
     
     if patch_method == 1
-        window = [32, 32];
+        window = [30, 30];
     else
         window = 3;
     end

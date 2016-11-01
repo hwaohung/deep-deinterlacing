@@ -1,7 +1,7 @@
 % im_1: gray image
 function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames, iter)
     use_gpu = 1;
-    patch_method = 0;
+    patch_method = 1;
     input_channels = 3;
     
     % Set caffe mode
@@ -190,7 +190,8 @@ function [im_h_patches, im_h_dsn_patches] = predict_patches(net, input_patches, 
             net.forward({input_full, label_full, interlace_full, deinterlace_full, inv_mask_full});
     
             im_h_patches(:, :, i) = net.blobs('output-combine').get_data();
-            im_h_dsn_patches(:, :, i) = net.blobs('output-dsn-combine').get_data();
+            im_h_dsn_patches(:, :, i) = im_h_patches(:, :, i);
+            %im_h_dsn_patches(:, :, i) = net.blobs('output-dsn-combine').get_data();
         end
     else
         net.forward({input_patches, label_patches});
