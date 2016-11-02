@@ -14,6 +14,9 @@ function [input_patches, label_patches, interlaced_patches, deinterlaced_patches
         inv_masks(:, :, frameCnt) = inv_mask;
     end
     
+    % Temp
+    deinterlaced_fields = deinterlace_video(frames, cnt);
+    
     frames = im2double(frames);
     interlaced_fields = im2double(interlaced_fields);        
     deinterlaced_fields = im2double(deinterlaced_fields);
