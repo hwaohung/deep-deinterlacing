@@ -56,6 +56,16 @@ for i = 1:length(filepaths)
             end
         end
         
+        v = VideoWriter(num2str(i), 'Grayscale AVI');
+        open(v);
+    
+        [rowCount, colCount, frameCount] = size(im_hs);
+        for tt = 1:frameCount
+            writeVideo(v, im_hs(:,:,tt));
+        end
+    
+        close(v);
+        
         t1(i, :) = psnr_gcbis(:);
         t2(i, :) = psnr_ds(:);
         

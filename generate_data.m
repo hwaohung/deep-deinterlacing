@@ -28,7 +28,7 @@ function [] = gen_new_patch2pixel_data(folder, filepaths, savepath, chunksz, tes
         [input_patches1, label_patches1] = new_patch2pixel(frames);
         
         % Remove condition(for calssify data usage)
-        indexes = eval_t(input_patches1, 0.027, 1);
+        indexes = eval_t(input_patches1, 1000, 0);
         input_patches1 = input_patches1(:, :, :, indexes);
         label_patches1 = label_patches1(:, :, :, indexes);
         
