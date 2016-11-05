@@ -1,4 +1,4 @@
-filename = 'C:\Users\Johnny\Desktop\碩士論文\data\test\container_cif';
+filename = 'C:\Users\Johnny\Desktop\碩士論文\data\test\akiyo_cif';
 v1 = VideoReader(strcat(filename, '.avi'));
 
 i = 0;
@@ -13,7 +13,7 @@ while hasFrame(v1)
     psnrs(i) = compute_psnr(frame1, frame2);
     frames(:, :, i) = frame2;
     
-    if i == 30
+    if i == 300
         break;
     end
     

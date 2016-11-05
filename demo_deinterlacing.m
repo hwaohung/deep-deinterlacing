@@ -4,7 +4,7 @@ close all;
 iter_max = 100;
 iter_step = 10;
 folder = 'Test';
-testFramesCnt = 30;
+testFramesCnt = 300;
 
 filepaths = dir(fullfile(folder, '*.avi'));
 psnr_list = zeros(length(filepaths), 5, 1, floor(iter_max/iter_step));

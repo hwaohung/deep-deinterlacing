@@ -7,7 +7,7 @@ function [] = generate_data()
     self_learning = 0;
     is_train_data = 0;
     input_channels = 3;
-    testFramesCnt = 30;
+    testFramesCnt = 100;
     
     if patch_method == 1
         window = [30, 30];
