@@ -107,5 +107,20 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
         end
     end
     
+    %{
+    for i = size(input_data, 4):-1:1
+        tmp = abs(input_data(:, :, 1, i) - input_data(:, :, 3, i));
+        diffs(i) = sum(tmp(:));
+    end
+    
+    %indexes = diffs <= floor(mean(diffs));
+    indexes = diffs > 28.4727;
+    input_data = input_data(:, :, :, indexes(:));
+    label_data = label_data(:, :, :, indexes(:));
+    interlaced_data = interlaced_data(:, :, :, indexes(:));
+    deinterlaced_data = deinterlaced_data(:, :, :, indexes(:));
+    inv_mask_data = inv_mask_data(:, :, :, indexes(:));
+    %}
+    
     save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data);
 end

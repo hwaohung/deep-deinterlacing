@@ -56,6 +56,7 @@ for i = 1:length(filepaths)
             end
         end
         
+        %{
         v = VideoWriter(num2str(i), 'Grayscale AVI');
         open(v);
     
@@ -63,8 +64,9 @@ for i = 1:length(filepaths)
         for tt = 1:frameCount
             writeVideo(v, im_hs(:,:, tt));
         end
-    
+        
         close(v);
+        %}
         
         psnr_list(i,1,:,iter_index) = iter;
         psnr_list(i,2,:,iter_index) = mean(psnr_gcbis(:));
