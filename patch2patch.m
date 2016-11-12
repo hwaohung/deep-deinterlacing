@@ -1,7 +1,7 @@
 % Patch => Patch method
-function [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, window, input_channels)
+function [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, window, stride, input_channels)
     [hei, wid, cnt] = size(frames);
-    stride = min(window);
+    %stride = min(window);
     
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
     for frameCnt = 1:cnt

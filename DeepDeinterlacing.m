@@ -66,7 +66,7 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
         stride = max([h w]);
     end
     
-    [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, [h w], input_channels); 
+    [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, [h w], stride, input_channels); 
     
     model_dir = 'models/';
     net_model = [model_dir 'patch/'];
