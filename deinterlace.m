@@ -13,7 +13,7 @@ function [image] = deinterlace(field, odd)
     
     if method == 1
         hdint = vision.Deinterlacer('Method', 'Linear interpolation', 'TransposedInput', false);
-    
+            
         if ~odd
             field(1:end-1, :) = field(2:end, :);
             image = step(hdint, field);
@@ -40,8 +40,8 @@ function [image] = deinterlace(field, odd)
         
         image = im2uint8(image);
         
-        % Gaussian method
         %{
+        % Gaussian method
         field = im2double(field);
         image = field;
         window = 3;
@@ -67,14 +67,12 @@ function [image] = deinterlace(field, odd)
         if ~odd
             image = field;
             tmp = field(2:2:end, :);
-            tmp = tmp(:, 2:2:end);
-            tmp = imresize(tmp, 2, 'bicubic');
+            tmp = imresize(tmp, size(field), 'bilinear');
             image(1:2:end, :) = tmp(1:2:end, :);
         else
             image = field;
             tmp = field(1:2:end, :);
-            tmp = tmp(:, 1:2:end);
-            tmp = imresize(tmp, 2, 'bicubic');
+            tmp = imresize(tmp, size(field), 'bilinear');
             image(2:2:end, :) = tmp(2:2:end, :);
         end
     % ELA

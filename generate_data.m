@@ -4,13 +4,13 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 1;
-    is_train_data = 0;
+    is_train_data = 1;
     input_channels = 3;
     testFramesCnt = 100;
     
     if patch_method == 1
-        window = [32, 32];
-        stride = 30;
+        window = [16, 16];
+        stride = 16;
     else
         window = 3;
     end
@@ -73,20 +73,19 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
         end
     end
     
-    %{
+    % TODO: Use only related field
     for i = size(input_data, 4):-1:1
         tmp = abs(input_data(:, :, 1, i) - input_data(:, :, 3, i));
-        diffs(i) = sum(tmp(:));
+        %diffs(i) = sum(tmp(:));
+        diffs(i) = mean(tmp(:));
     end
-    
-    %indexes = diffs <= floor(mean(diffs));
-    indexes = diffs > 28.4727;
+            
+    indexes = diffs > 0.0318;
     input_data = input_data(:, :, :, indexes(:));
     label_data = label_data(:, :, :, indexes(:));
     interlaced_data = interlaced_data(:, :, :, indexes(:));
     deinterlaced_data = deinterlaced_data(:, :, :, indexes(:));
     inv_mask_data = inv_mask_data(:, :, :, indexes(:));
-    %}
     
     save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data);
 end

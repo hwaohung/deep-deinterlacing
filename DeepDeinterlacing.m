@@ -77,7 +77,7 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
     end
     
     net_weights1 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(1).caffemodel'];
-    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
+    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(2).caffemodel'];
 
     if ~exist(net_weights1, 'file') || ~exist(net_weights2, 'file')
         error('Please check caffemodel is exist or not.');
@@ -130,7 +130,8 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
             
             % TODO
             tmp = abs(input_patches(:, :, 1, (i-1)*eachCnt+j) - input_patches(:, :, 3, (i-1)*eachCnt+j));
-            if sum(tmp(:)) <= 28.4727
+            %if sum(tmp(:)) <= 28.4727
+            if mean(tmp(:)) <= 0.0318
                 im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patches1(:, :, j);
                 im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patches1(:, :, j);
             else

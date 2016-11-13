@@ -1,11 +1,28 @@
-filename = 'C:\Users\Johnny\Desktop\碩士論文\data\test\akiyo_cif';
+%filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\akiyo_cif';
+%filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\container_cif';
+filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\stefan_sif';
 filename = [filename, '.avi'];
 
 folder = 'Test';
 filepaths = dir(fullfile(folder, '*.avi'));
-testFramesCnt = 300;
+testFramesCnt = 30;
 
 gnd_frames = get_video_frames(filename, testFramesCnt);
+
+frames1 = self_validation(gnd_frames);
+
+for i = 1:size(gnd_frames, 3)
+    frames2(:, :, i) = deinterlace(gnd_frames(:, :, i), mod(i, 2));
+end
+
+for i = 1:size(gnd_frames, 3)
+    psnrs1(i) = compute_psnr(gnd_frames(:, :, i), frames1(:, :, i));
+    psnrs2(i) = compute_psnr(gnd_frames(:, :, i), frames2(:, :, i));
+end
+
+disp([mean(psnrs1), mean(psnrs2)]);
+return;
+
 % Base
 frames1 = deinterlace_video(gnd_frames, testFramesCnt);
 % Final
@@ -101,7 +118,7 @@ sum(psnrs2(:))/size(psnrs2, 2)
 
 return;
 
-filename = 'C:\Users\Johnny\Desktop\碩士論文\data\test\stefan_sif';
+filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\stefan_sif';
 v1 = VideoReader(strcat(filename, '.avi'));
 
 i = 0;
