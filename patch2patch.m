@@ -1,7 +1,6 @@
 % Patch => Patch method
 function [input_patches, label_patches, interlaced_patches, deinterlaced_patches, inv_mask_patches, eachCnt] = patch2patch(frames, window, stride, input_channels)
     [hei, wid, cnt] = size(frames);
-    %stride = min(window);
     
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
     for frameCnt = 1:cnt
@@ -35,16 +34,16 @@ function [input_patches, label_patches, interlaced_patches, deinterlaced_patches
         if input_channels == 3
             % Get prev, post field
             if frameCnt == 1
-                prev = deinterlaced_fields(:, :, frameCnt);
+                prev = deinterlaced_fields(:, :, frameCnt+1);
                 post = deinterlaced_fields(:, :, frameCnt+1);
             elseif frameCnt == cnt
                 prev = deinterlaced_fields(:, :, frameCnt-1);
-                post = deinterlaced_fields(:, :, frameCnt);
+                post = deinterlaced_fields(:, :, frameCnt-1);
             else
                 prev = deinterlaced_fields(:, :, frameCnt-1);
                 post = deinterlaced_fields(:, :, frameCnt+1);
             end
-            
+                        
             input_full = reshape([prev, deinterlaced_fields(:, :, frameCnt), post], hei, wid, 3);
         elseif input_channels == 1
             input_full = deinterlaced_fields(:, :, frameCnt);
@@ -72,7 +71,7 @@ function [input_patches, label_patches, interlaced_patches, deinterlaced_patches
                 
                 eachCnt = eachCnt + 1;
                 count = count + 1;
-
+                
                 input_patches(:, :, :, count) = input_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
                 label_patches(:, :, :, count) = label_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);
                 interlaced_patches(:, :, :, count) = interlace_full(s_row:s_row+window(1)-1, s_col:s_col+window(2)-1, :);

@@ -4,7 +4,7 @@ close all;
 iter_max = 100;
 iter_step = 10;
 folder = 'Test';
-testFramesCnt = 300;
+testFramesCnt = 30;
 
 filepaths = dir(fullfile(folder, '*.avi'));
 psnr_list = zeros(length(filepaths), 5, 1, floor(iter_max/iter_step));
@@ -12,8 +12,6 @@ psnr_list = zeros(length(filepaths), 5, 1, floor(iter_max/iter_step));
 for i = 1:length(filepaths)
     clear frames psnr_gcbis psnr_ds psnr_dsns psnr_fusions; 
     frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
-    %[resizeds1, resizeds2] = interlaced_resize(frames);
-    %frames = cat(4, resizeds1, resizeds2);
     
     for iter_index = 10:floor(iter_max/iter_step)
         iter = iter_index * iter_step;

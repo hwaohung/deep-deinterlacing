@@ -4,7 +4,7 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 1;
-    is_train_data = 1;
+    is_train_data = 0;
     input_channels = 3;
     testFramesCnt = 100;
     
@@ -56,7 +56,7 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
     for i = 1:length(filepaths)
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
         
-        [input_patches1, label_patches1, interlaced_patches1, deinterlaced_patches1, inv_mask_patches1] = patch2patch(frames, window, stride, input_channels);
+        [input_patches1, label_patches1, interlaced_patches1, deinterlaced_patches1, inv_mask_patches1, eachCnt] = patch2patch(frames, window, stride, input_channels);
         
         if i == 1
         	input_data = input_patches1;
@@ -73,19 +73,37 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
         end
     end
     
-    % TODO: Use only related field
+    %% Selected odd/even frame
+    %{
+    indexes = [];
+    for i = 1:size(input_data, 4)/eachCnt
+        if mod(i, 2) == 0
+            indexes = cat(2, indexes, (i-1)*eachCnt+1:i*eachCnt);
+        end
+    end
+    
+    input_data = input_data(:, :, :, indexes);
+    label_data = label_data(:, :, :, indexes);
+    interlaced_data = interlaced_data(:, :, :, indexes);
+    deinterlaced_data = deinterlaced_data(:, :, :, indexes);
+    inv_mask_data = inv_mask_data(:, :, :, indexes);
+    %}
+    
+    %% TODO: Use only related field
+    %{
     for i = size(input_data, 4):-1:1
         tmp = abs(input_data(:, :, 1, i) - input_data(:, :, 3, i));
-        %diffs(i) = sum(tmp(:));
         diffs(i) = mean(tmp(:));
     end
-            
-    indexes = diffs > 0.0318;
+    
+    disp(mean(diffs))
+    indexes = diffs > 0.0338;
     input_data = input_data(:, :, :, indexes(:));
     label_data = label_data(:, :, :, indexes(:));
     interlaced_data = interlaced_data(:, :, :, indexes(:));
     deinterlaced_data = deinterlaced_data(:, :, :, indexes(:));
     inv_mask_data = inv_mask_data(:, :, :, indexes(:));
+    %}
     
     save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data);
 end

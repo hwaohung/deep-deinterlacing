@@ -7,9 +7,13 @@ folder = 'Test';
 filepaths = dir(fullfile(folder, '*.avi'));
 testFramesCnt = 30;
 
+clear frames1 frames2;
+
 gnd_frames = get_video_frames(filename, testFramesCnt);
 
+tic;
 frames1 = self_validation(gnd_frames);
+disp(toc);
 
 for i = 1:size(gnd_frames, 3)
     frames2(:, :, i) = deinterlace(gnd_frames(:, :, i), mod(i, 2));

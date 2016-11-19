@@ -1,29 +1,32 @@
 function [deinterlaced_frames] = self_validation(frames)
-    [hei, wid, cnt] = size(frames);
+    %deinterlaced_frames = DeepTemp(frames, 100000, 1);
+    %return;
 
-    methods = 5;
+    [hei, wid, cnt] = size(frames);
+    
+    methods = 6;
     
     field_map = uint8(zeros(hei/2, wid, cnt, methods));
     diff_map = zeros(hei/2 + 1, wid, cnt, methods);
     for method = 1:methods
+        d1_frames = deinterlaces(frames, 1, method);
+        d2_frames = deinterlaces(frames, 0, method);
+        
         for i = 1:size(frames, 3)
-            d1_frame = deinterlace(frames(:, :, i), mod(i, 2) == 1, method);
-            d2_frame = deinterlace(frames(:, :, i), mod(i, 2) == 0, method);      
-            
             if mod(i, 2)
-                field_map(:, :, i, method) = d1_frame(2:2:end, :);
-                diff_map(1:end-1, :, i, method) = calc_diff_map(frames(1:2:end, :, i), d2_frame(1:2:end, :));
+                field_map(:, :, i, method) = d1_frames(2:2:end, :, i);
+                diff_map(1:end-1, :, i, method) = calc_diff_map(frames(1:2:end, :, i), d2_frames(1:2:end, :, i));
                 diff_map(end, :, i, method) = diff_map(end-1, :, i, method);
             else
-                field_map(:, :, i, method) = d1_frame(1:2:end, :);
-                diff_map(2:end, :, i, method) = calc_diff_map(frames(2:2:end, :, i), d2_frame(2:2:end, :));
+                field_map(:, :, i, method) = d1_frames(1:2:end, :, i);
+                diff_map(2:end, :, i, method) = calc_diff_map(frames(2:2:end, :, i), d2_frames(2:2:end, :, i));
                 diff_map(1, :, i, method) = diff_map(2, :, i, method);
             end
         end
     end
     
     ref_map = zeros(hei/2, wid, cnt, methods);
-    window = [4, 9];
+    window = [2, 5];
     mask = ones(window);
     diff_map = padarray(diff_map, [(window(1)-2)/2, (window(2)-1)/2], 'symmetric');
     
@@ -61,6 +64,17 @@ function [deinterlaced_frames] = self_validation(frames)
         end
         
         deinterlaced_frames(s_i:2:end, :, i) = tmp;
+    end
+end
+
+function [images] = deinterlaces(fields, is_odd, method)
+    if method < 6
+        images = zeros(size(fields), 'uint8');
+        for i = 1:size(fields, 3)
+            images(:, :, i) = deinterlace(fields(:, :, i), mod(i, 2) == is_odd, method);
+        end
+    else
+        images = DeepTemp(fields, 100000, is_odd);
     end
 end
 
@@ -136,7 +150,7 @@ function [image] = deinterlace(field, odd, method)
             tmp = imresize(tmp, size(field), 'bilinear');
             image(2:2:end, :) = tmp(2:2:end, :);
         end
-    elseif method == 5       
+    elseif method == 5
         % Gaussian method
         field = im2double(field);
         image = field;
@@ -147,17 +161,29 @@ function [image] = deinterlace(field, odd, method)
         
         if ~odd
             field = field(2:2:end, :);
-            field = padarray(field, [padding, 1], 'symmetric');
+            field = padarray(field, [1, padding], 'symmetric');
             interpolation = conv2(field, mask, 'valid');
             image(1:2:end, :) = interpolation(1:end-1, :);
         else
             field = field(1:2:end, :);
-            field = padarray(field, [padding, 1], 'symmetric');
+            field = padarray(field, [1, padding], 'symmetric');
             interpolation = conv2(field, mask, 'valid');
             image(2:2:end, :) = interpolation(2:end, :);
         end
         
         image = im2uint8(image);
+        
+        %{
+        hdint = vision.Deinterlacer('Method', 'Vertical temporal median filtering', 'TransposedInput', false);
+            
+        if ~odd
+            field(1:end-1, :) = field(2:end, :);
+            image = step(hdint, field);
+            image(2:end, :) = image(1:end-1, :);
+        else
+            image = step(hdint, field); 
+        end
+        %}
     end
 end
 

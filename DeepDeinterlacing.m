@@ -13,30 +13,7 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     else
         caffe.set_mode_cpu();
     end
-
-    % Initialize the network
-    model_dir = 'models/';
     
-    if patch_method == 1
-        net_model = [model_dir 'patch/'];
-    else
-        net_model = [model_dir 'pixel/'];
-    end
-    
-    if input_channels == 3
-        net_model = [net_model 'DeepDeinterlacing_mat31.prototxt'];
-    elseif input_channels == 1
-        net_model = [net_model 'DeepDeinterlacing_mat11.prototxt'];
-    end
-    
-    net_weights = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
-
-    if ~exist(net_weights, 'file')
-        error('Please check caffemodel is exist or not.');
-    end
-
-    net = caffe.Net(net_model, net_weights, 'test');
-
     tic; 
     if patch_method == 1
         [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter);
@@ -53,8 +30,20 @@ function [im_hs, im_h_dsns, im_fusions, running_time] = DeepDeinterlacing(frames
     caffe.reset_all();
 end
 
+function [net] = init_net(net_model, net_weights, h, w, input_channels, eachCnt)
+    net = caffe.Net(net_model, net_weights, 'test');
+
+    % Reshape blobs
+    net.blobs('input').reshape([h w input_channels eachCnt]);
+    net.blobs('label').reshape([h w 1 eachCnt]);
+    net.blobs('interlace').reshape([h w 1 eachCnt]);
+    net.blobs('deinterlace').reshape([h w 1 eachCnt]);
+    net.blobs('inv-mask').reshape([h w 1 eachCnt]);
+    net.reshape();
+end
+
 function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
-    isPatch = 0;
+    isPatch = 1;
 
     if isPatch
         % Patch size
@@ -76,34 +65,33 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
         net_model = [net_model 'DeepDeinterlacing_mat11.prototxt'];
     end
     
+    % odd
     net_weights1 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(1).caffemodel'];
-    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(2).caffemodel'];
+    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(1).caffemodel'];
+    % even
+    net_weights3 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(3).caffemodel'];
+    net_weights4 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(3).caffemodel'];
 
-    if ~exist(net_weights1, 'file') || ~exist(net_weights2, 'file')
+    if ~exist(net_weights1, 'file') || ~exist(net_weights2, 'file') || ~exist(net_weights3, 'file') || ~exist(net_weights4, 'file')
         error('Please check caffemodel is exist or not.');
     end
 
-    net1 = caffe.Net(net_model, net_weights1, 'test');
-    net2 = caffe.Net(net_model, net_weights2, 'test');
-    
-    % Reshape blobs
-    net1.blobs('input').reshape([h w input_channels eachCnt]);
-    net1.blobs('label').reshape([h w 1 eachCnt]);
-    net1.blobs('interlace').reshape([h w 1 eachCnt]);
-    net1.blobs('deinterlace').reshape([h w 1 eachCnt]);
-    net1.blobs('inv-mask').reshape([h w 1 eachCnt]);
-    net1.reshape();
-    
-    net2.blobs('input').reshape([h w input_channels eachCnt]);
-    net2.blobs('label').reshape([h w 1 eachCnt]);
-    net2.blobs('interlace').reshape([h w 1 eachCnt]);
-    net2.blobs('deinterlace').reshape([h w 1 eachCnt]);
-    net2.blobs('inv-mask').reshape([h w 1 eachCnt]);
-    net2.reshape();
+    net_cand1 = init_net(net_model, net_weights1, h, w, input_channels, eachCnt);
+    net_cand2 = init_net(net_model, net_weights2, h, w, input_channels, eachCnt);
+    net_cand3 = init_net(net_model, net_weights3, h, w, input_channels, eachCnt);
+    net_cand4 = init_net(net_model, net_weights4, h, w, input_channels, eachCnt);
     
     im_hs = zeros(size(frames));
     im_h_dsns = zeros(size(frames));
     for i = 1:size(input_patches, 4)/eachCnt
+        if mod(i, 2)
+            net1 = net_cand1;
+            net2 = net_cand2;
+        else
+            net1 = net_cand3;
+            net2 = net_cand4;
+        end
+        
         [im_h_patches1, im_h_dsn_patches1] = predict_patches(net1, input_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), label_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
                                                              interlaced_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), deinterlaced_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
                                                              inv_mask_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt));
@@ -130,7 +118,6 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
             
             % TODO
             tmp = abs(input_patches(:, :, 1, (i-1)*eachCnt+j) - input_patches(:, :, 3, (i-1)*eachCnt+j));
-            %if sum(tmp(:)) <= 28.4727
             if mean(tmp(:)) <= 0.0318
                 im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patches1(:, :, j);
                 im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patches1(:, :, j);
