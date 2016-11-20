@@ -4,7 +4,7 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 1;
-    is_train_data = 0;
+    is_train_data = 1;
     input_channels = 3;
     testFramesCnt = 100;
     
@@ -16,12 +16,12 @@ function [] = generate_data()
     end
 
     if is_train_data
-        folder = 'Train';
-        savepath = 'train.h5';
+        folder = 'GenData\Train';
+        savepath = 'GenData\train.h5';
         chunksz = 1024;
     else
-        folder = 'Test';
-        savepath = 'test.h5';
+        folder = 'GenData\Test';
+        savepath = 'GenData\test.h5';
         chunksz = 1024;
     end
     
@@ -56,20 +56,16 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
     for i = 1:length(filepaths)
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
         
-        [input_patches1, label_patches1, interlaced_patches1, deinterlaced_patches1, inv_mask_patches1, eachCnt] = patch2patch(frames, window, stride, input_channels);
+        [input_patches1, label_patches1, deinterlaced_patches1, eachCnt] = patch2patch(frames, window, stride, input_channels);
         
         if i == 1
         	input_data = input_patches1;
             label_data = label_patches1;
-            interlaced_data = interlaced_patches1;
             deinterlaced_data = deinterlaced_patches1;
-            inv_mask_data = inv_mask_patches1;
         else
             input_data = cat(4, input_data, input_patches1);
             label_data = cat(4, label_data, label_patches1);
-            interlaced_data = cat(4, interlaced_data, interlaced_patches1);
             deinterlaced_data = cat(4, deinterlaced_data, deinterlaced_patches1);
-            inv_mask_data = cat(4, inv_mask_data, inv_mask_patches1);
         end
     end
     
@@ -84,9 +80,7 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
     
     input_data = input_data(:, :, :, indexes);
     label_data = label_data(:, :, :, indexes);
-    interlaced_data = interlaced_data(:, :, :, indexes);
     deinterlaced_data = deinterlaced_data(:, :, :, indexes);
-    inv_mask_data = inv_mask_data(:, :, :, indexes);
     %}
     
     %% TODO: Use only related field
@@ -100,10 +94,8 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
     indexes = diffs > 0.0338;
     input_data = input_data(:, :, :, indexes(:));
     label_data = label_data(:, :, :, indexes(:));
-    interlaced_data = interlaced_data(:, :, :, indexes(:));
     deinterlaced_data = deinterlaced_data(:, :, :, indexes(:));
-    inv_mask_data = inv_mask_data(:, :, :, indexes(:));
     %}
     
-    save2hdf5(savepath, chunksz, input_data, label_data, interlaced_data, deinterlaced_data, inv_mask_data);
+    save2hdf5(savepath, chunksz, input_data, label_data, deinterlaced_data);
 end
