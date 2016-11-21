@@ -4,7 +4,7 @@ function [deinterlaced_frames] = self_validation(frames)
 
     [hei, wid, cnt] = size(frames);
     
-    methods = 5;
+    methods = 6;
     
     field_map = uint8(zeros(hei/2, wid, cnt, methods));
     diff_map = zeros(hei/2 + 1, wid, cnt, methods);
@@ -79,6 +79,8 @@ function [images] = deinterlace(fields, is_odd, method)
     elseif method == 5
         images = method5(fields, is_odd);
     elseif method == 6
+        images = method6(fields, is_odd);
+    elseif method == 7
         images = DeepTemp(fields, 100000, is_odd);
     end
 end
@@ -227,132 +229,99 @@ function [images] = method5(fields, is_odd)
     end
 end
 
-%{
-function [images] = deinterlaces(fields, is_odd, method)
-    if method < 6
-        images = zeros(size(fields), 'uint8');
-        for i = 1:size(fields, 3)
-            images(:, :, i) = deinterlace(fields(:, :, i), mod(i, 2) == is_odd, method);
+function [images] = method6(fields, is_odd)    
+    c = size(fields, 3);
+    images = zeros(size(fields), class(fields));
+    %{
+    for i = c:-1:2
+        if mod(i, 2) == is_odd
+            images(1:2:end, :, i) = fields(1:2:end, :, i);
+            images(2:2:end, :, i) = fields(2:2:end, :, i-1);
+        else
+            images(2:2:end, :, i) = fields(2:2:end, :, i);
+            images(1:2:end, :, i) = fields(1:2:end, :, i-1);
         end
-        
+    end
+    
+    if mod(1, 2) == is_odd
+        images(1:2:end, :, 1) = fields(1:2:end, :, 1);
+        images(2:2:end, :, 1) = fields(2:2:end, :, 2);
     else
-        images = DeepTemp(fields, 100000, is_odd);
+        images(2:2:end, :, 1) = fields(2:2:end, :, 1);
+        images(1:2:end, :, 1) =  fields(1:2:end, :, 2);
     end
-end
-%}
-
-%{
-function [image] = deinterlace(field, odd, method)
-    if method == 1
-        field = im2double(field);
-        image = field;
-        mask = [0.5, 0, 0; 0, 0, 0.5];
-                
-        if ~odd
-            field = field(2:2:end, :);
-            field = padarray(field, [0, 1], 'symmetric');
-            interpolation = conv2(field, mask, 'valid');
-            image(3:2:end-1, :) = interpolation;
-            image(1, :) = image(2, :);
+    %}
+    
+    for i = 1:c-1
+        if mod(i, 2) == is_odd
+            images(1:2:end, :, i) = fields(1:2:end, :, i);
+            images(2:2:end, :, i) = fields(2:2:end, :, i+1);
         else
-            field = field(1:2:end, :);
-            field = padarray(field, [0, 1], 'symmetric');
-            interpolation = conv2(field, mask, 'valid');
-            image(2:2:end-1, :) = interpolation;
-            image(end, :) = image(end-1, :);
+            images(2:2:end, :, i) = fields(2:2:end, :, i);
+            images(1:2:end, :, i) = fields(1:2:end, :, i+1);
         end
-        
-        image = im2uint8(image);
-    elseif method == 2
-        field = im2double(field);
-        image = field;
-        mask = [0.5; 0.5];
-                
-        if ~odd
-            field = field(2:2:end, :);
-            interpolation = conv2(field, mask, 'valid');
-            image(3:2:end-1, :) = interpolation;
-            image(1, :) = image(2, :);
-        else
-            field = field(1:2:end, :);
-            interpolation = conv2(field, mask, 'valid');
-            image(2:2:end-1, :) = interpolation;
-            image(end, :) = image(end-1, :);
-        end
-        
-        image = im2uint8(image);
-    elseif method == 3
-        field = im2double(field);
-        image = field;
-        mask = [0, 0, 0.5; 0.5, 0, 0];
-                
-        if ~odd
-            field = field(2:2:end, :);
-            field = padarray(field, [0, 1], 'symmetric');
-            interpolation = conv2(field, mask, 'valid');
-            image(3:2:end-1, :) = interpolation;
-            image(1, :) = image(2, :);
-        else
-            field = field(1:2:end, :);
-            field = padarray(field, [0, 1], 'symmetric');
-            interpolation = conv2(field, mask, 'valid');
-            image(2:2:end-1, :) = interpolation;
-            image(end, :) = image(end-1, :);
-        end
-        
-        image = im2uint8(image);
-    elseif method == 4
-        % Gaussian method
-        field = im2double(field);
-        image = field;
-        window = 3;
-        padding = (window-1) / 2;
-        mask = [0.0533, 0.3935, 0.0533;
-                0.0533, 0.3935, 0.0533];
-        
-        if ~odd
-            field = field(2:2:end, :);
-            field = padarray(field, [1, padding], 'symmetric');
-            interpolation = conv2(field, mask, 'valid');
-            image(1:2:end, :) = interpolation(1:end-1, :);
-        else
-            field = field(1:2:end, :);
-            field = padarray(field, [1, padding], 'symmetric');
-            interpolation = conv2(field, mask, 'valid');
-            image(2:2:end, :) = interpolation(2:end, :);
-        end
-        
-        image = im2uint8(image);
-    elseif method == 5
-        %{
-        hdint = vision.Deinterlacer('Method', 'Vertical temporal median filtering', 'TransposedInput', false);
+    end
+    
+    if mod(c, 2) == is_odd
+        images(1:2:end, :, c) = fields(1:2:end, :, c);
+        images(2:2:end, :, c) = fields(2:2:end, :, c-1);
+    else
+        images(2:2:end, :, c) = fields(2:2:end, :, c);
+        images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
+    end
+    
+    %{
+    for i = 2:c-1
+        if mod(i, 2) == is_odd
+            images(1:2:end, :, i) = fields(1:2:end, :, i);
             
-        if ~odd
-            field(1:end-1, :) = field(2:end, :);
-            image = step(hdint, field);
-            image(2:end, :) = image(1:end-1, :);
+            tmp = fields(1:2:end, :, i);
+            
+            tmp1 = method2(fields(:, :, i-1), 0); 
+            tmp2 = method2(fields(:, :, i+1), 0);   
+            tmp1 = sum(sum(abs(tmp-tmp1(1:2:end, :) .^ 2)));
+            tmp2 = sum(sum(abs(tmp-tmp2(1:2:end, :) .^ 2)));
+            
+            if tmp1 > tmp2
+                images(2:2:end, :, i) = fields(2:2:end, :, i+1);
+            else
+                images(2:2:end, :, i) = fields(2:2:end, :, i-1);
+            end
         else
-            image = step(hdint, field); 
+            images(2:2:end, :, i) = fields(2:2:end, :, i);
+            
+            tmp = fields(2:2:end, :, i);
+            
+            tmp1 = method2(fields(:, :, i-1), 1); 
+            tmp2 = method2(fields(:, :, i+1), 1);   
+            tmp1 = sum(sum(abs(tmp-tmp1(2:2:end, :) .^ 2)));
+            tmp2 = sum(sum(abs(tmp-tmp2(2:2:end, :) .^ 2)));
+            
+            if tmp1 > tmp2
+                images(1:2:end, :, i) = fields(1:2:end, :, i+1);
+            else
+                images(1:2:end, :, i) = fields(1:2:end, :, i-1);
+            end
         end
-        %}
-        
-        %{
-        % Bilinear interpolation
-        if ~odd
-            image = field;
-            tmp = field(2:2:end, :);
-            tmp = imresize(tmp, size(field), 'bilinear');
-            image(1:2:end, :) = tmp(1:2:end, :);
-        else
-            image = field;
-            tmp = field(1:2:end, :);
-            tmp = imresize(tmp, size(field), 'bilinear');
-            image(2:2:end, :) = tmp(2:2:end, :);
-        end
-        %}
     end
+    
+    if mod(c, 2) == is_odd
+        images(1:2:end, :, c) = fields(1:2:end, :, c);
+        images(2:2:end, :, c) = fields(2:2:end, :, c-1);
+    else
+        images(2:2:end, :, c) = fields(2:2:end, :, c);
+        images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
+    end
+    
+    if mod(c, 2) == is_odd
+        images(1:2:end, :, c) = fields(1:2:end, :, c);
+        images(2:2:end, :, c) = fields(2:2:end, :, c-1);
+    else
+        images(2:2:end, :, c) = fields(2:2:end, :, c);
+        images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
+    end
+    %}
 end
-%}
 
 function [map] = calc_diff_map(frame1, frame2)
     map = abs(frame1 - frame2);
