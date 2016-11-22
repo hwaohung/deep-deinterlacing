@@ -1,16 +1,16 @@
-function [deinterlaced_frames] = self_validation(frames)
+% is_odd: 1(default) => odd, even, ...
+% is_odd: 0 => even, odd, ...
+function [deinterlaced_frames] = self_validation(frames, methods, is_odd)
     %deinterlaced_frames = DeepTemp(frames, 100000, 1);
     %return;
-
-    [hei, wid, cnt] = size(frames);
     
-    methods = 6;
+    [hei, wid, cnt] = size(frames);
     
     field_map = uint8(zeros(hei/2, wid, cnt, methods));
     diff_map = zeros(hei/2 + 1, wid, cnt, methods);
     for method = 1:methods
-        d1_frames = deinterlace(frames, 1, method);
-        d2_frames = deinterlace(frames, 0, method);
+        d1_frames = deinterlace(frames, is_odd, method);
+        d2_frames = deinterlace(frames, ~is_odd, method);
         
         for i = 1:size(frames, 3)
             if mod(i, 2)
@@ -26,7 +26,7 @@ function [deinterlaced_frames] = self_validation(frames)
     end
     
     ref_map = zeros(hei/2, wid, cnt, methods);
-    window = [2, 5];
+    window = [4, 9];
     mask = ones(window);
     diff_map = padarray(diff_map, [(window(1)-2)/2, (window(2)-1)/2], 'symmetric');
     
@@ -81,6 +81,8 @@ function [images] = deinterlace(fields, is_odd, method)
     elseif method == 6
         images = method6(fields, is_odd);
     elseif method == 7
+        images = method7(fields, is_odd);
+    elseif method == 8
         images = DeepTemp(fields, 100000, is_odd);
     end
 end
@@ -211,11 +213,16 @@ function [images] = method5(fields, is_odd)
             tmp = field(2:2:end, :);
             tmp = imresize(tmp, size(field), 'bilinear');
             image(1:2:end, :) = tmp(1:2:end, :);
-        end        
+        end
         
-        %{
-        hdint = vision.Deinterlacer('Method', 'Vertical temporal median filtering', 'TransposedInput', false);
-            
+        images(:, :, i) = im2uint8(image);
+    end
+    
+    %{
+    hdint = vision.Deinterlacer('Method', 'Vertical temporal median filtering', 'TransposedInput', false);
+    for i = 1:size(fields, 3)
+        field = fields(:, :, i);
+        
         if mod(i, 2) == is_odd
             image = step(hdint, field);
         else
@@ -223,35 +230,15 @@ function [images] = method5(fields, is_odd)
             image = step(hdint, field);
             image(2:end, :) = image(1:end-1, :);
         end
-        %}
         
         images(:, :, i) = im2uint8(image);
     end
+    %}
 end
 
-function [images] = method6(fields, is_odd)    
+function [images] = method6(fields, is_odd)
     c = size(fields, 3);
     images = zeros(size(fields), class(fields));
-    %{
-    for i = c:-1:2
-        if mod(i, 2) == is_odd
-            images(1:2:end, :, i) = fields(1:2:end, :, i);
-            images(2:2:end, :, i) = fields(2:2:end, :, i-1);
-        else
-            images(2:2:end, :, i) = fields(2:2:end, :, i);
-            images(1:2:end, :, i) = fields(1:2:end, :, i-1);
-        end
-    end
-    
-    if mod(1, 2) == is_odd
-        images(1:2:end, :, 1) = fields(1:2:end, :, 1);
-        images(2:2:end, :, 1) = fields(2:2:end, :, 2);
-    else
-        images(2:2:end, :, 1) = fields(2:2:end, :, 1);
-        images(1:2:end, :, 1) =  fields(1:2:end, :, 2);
-    end
-    %}
-    
     for i = 1:c-1
         if mod(i, 2) == is_odd
             images(1:2:end, :, i) = fields(1:2:end, :, i);
@@ -269,48 +256,57 @@ function [images] = method6(fields, is_odd)
         images(2:2:end, :, c) = fields(2:2:end, :, c);
         images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
     end
-    
-    %{
+end
+
+%{
+function [images] = method7(fields, is_odd)
+    c = size(fields, 3);
+    images = zeros(size(fields), class(fields));
+
     for i = 2:c-1
         if mod(i, 2) == is_odd
             images(1:2:end, :, i) = fields(1:2:end, :, i);
             
-            tmp = fields(1:2:end, :, i);
+            tmp = method2(fields(:, :, i), 1);
+            tmp = tmp(2:2:end, :);
             
-            tmp1 = method2(fields(:, :, i-1), 0); 
-            tmp2 = method2(fields(:, :, i+1), 0);   
-            tmp1 = sum(sum(abs(tmp-tmp1(1:2:end, :) .^ 2)));
-            tmp2 = sum(sum(abs(tmp-tmp2(1:2:end, :) .^ 2)));
+            tmp1 = fields(2:2:end, :, i-1);
+            tmp2 = fields(2:2:end, :, i+1);
             
-            if tmp1 > tmp2
-                images(2:2:end, :, i) = fields(2:2:end, :, i+1);
-            else
+            tmp1 = sum(sum(abs(tmp-tmp1)));
+            tmp2 = sum(sum(abs(tmp-tmp2)));
+            
+            if tmp1 < tmp2
                 images(2:2:end, :, i) = fields(2:2:end, :, i-1);
+            else
+                images(2:2:end, :, i) = fields(2:2:end, :, i+1);
             end
         else
             images(2:2:end, :, i) = fields(2:2:end, :, i);
             
-            tmp = fields(2:2:end, :, i);
+            tmp = method2(fields(:, :, i), 0);
+            tmp = tmp(1:2:end, :);
             
-            tmp1 = method2(fields(:, :, i-1), 1); 
-            tmp2 = method2(fields(:, :, i+1), 1);   
-            tmp1 = sum(sum(abs(tmp-tmp1(2:2:end, :) .^ 2)));
-            tmp2 = sum(sum(abs(tmp-tmp2(2:2:end, :) .^ 2)));
+            tmp1 = fields(1:2:end, :, i-1);
+            tmp2 = fields(1:2:end, :, i+1);
             
-            if tmp1 > tmp2
-                images(1:2:end, :, i) = fields(1:2:end, :, i+1);
-            else
+            tmp1 = sum(sum(abs(tmp-tmp1)));
+            tmp2 = sum(sum(abs(tmp-tmp2)));
+            
+            if tmp1 < tmp2
                 images(1:2:end, :, i) = fields(1:2:end, :, i-1);
+            else
+                images(1:2:end, :, i) = fields(1:2:end, :, i+1);
             end
         end
     end
     
-    if mod(c, 2) == is_odd
-        images(1:2:end, :, c) = fields(1:2:end, :, c);
-        images(2:2:end, :, c) = fields(2:2:end, :, c-1);
+    if mod(1, 2) == is_odd
+        images(1:2:end, :, 1) = fields(1:2:end, :, 1);
+        images(2:2:end, :, 1) = fields(2:2:end, :, 2);
     else
-        images(2:2:end, :, c) = fields(2:2:end, :, c);
-        images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
+        images(2:2:end, :, 1) = fields(2:2:end, :, 1);
+        images(1:2:end, :, 1) = fields(1:2:end, :, 2);
     end
     
     if mod(c, 2) == is_odd
@@ -320,8 +316,8 @@ function [images] = method6(fields, is_odd)
         images(2:2:end, :, c) = fields(2:2:end, :, c);
         images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
     end
-    %}
 end
+%}
 
 function [map] = calc_diff_map(frame1, frame2)
     map = abs(frame1 - frame2);
