@@ -1,19 +1,16 @@
 % is_odd: 1(default) => odd, even, ...
 % is_odd: 0 => even, odd, ...
 function [deinterlaced_frames] = self_validation(frames, methods, is_odd)
-    %deinterlaced_frames = DeepTemp(frames, 100000, 1);
-    %return;
-    
     [hei, wid, cnt] = size(frames);
     
     field_map = uint8(zeros(hei/2, wid, cnt, methods));
     diff_map = zeros(hei/2 + 1, wid, cnt, methods);
     for method = 1:methods
         d1_frames = deinterlace(frames, is_odd, method);
-        d2_frames = deinterlace(frames, ~is_odd, method);
+        d2_frames = deinterlace(d1_frames, ~is_odd, method);
         
         for i = 1:size(frames, 3)
-            if mod(i, 2)
+            if mod(i, 2) == is_odd
                 field_map(:, :, i, method) = d1_frames(2:2:end, :, i);
                 diff_map(1:end-1, :, i, method) = calc_diff_map(frames(1:2:end, :, i), d2_frames(1:2:end, :, i));
                 diff_map(end, :, i, method) = diff_map(end-1, :, i, method);
@@ -50,7 +47,7 @@ function [deinterlaced_frames] = self_validation(frames, methods, is_odd)
     % Get U
     [Y, U] = min(ref_map, [], 4);
     for i = 1:cnt
-        if mod(i, 2)
+        if mod(i, 2) == is_odd
             s_i = 2;
         else
             s_i = 1;
@@ -80,11 +77,14 @@ function [images] = deinterlace(fields, is_odd, method)
         images = method5(fields, is_odd);
     elseif method == 6
         images = method6(fields, is_odd);
+    %{
     elseif method == 7
-        images = method7(fields, is_odd);
+        %images = DeepTemp(fields, 100000, is_odd, 2);
     elseif method == 8
-        images = DeepTemp(fields, 100000, is_odd);
+        images = method7(fields, is_odd);
+        %images = DeepTemp(fields, 100000, is_odd, 2);
     end
+    %}
 end
 
 function [images] = method1(fields, is_odd)
@@ -116,6 +116,23 @@ end
 
 function [images] = method2(fields, is_odd)
     images = zeros(size(fields), class(fields));
+    hdint = vision.Deinterlacer('Method', 'Linear interpolation', 'TransposedInput', false);
+    for i = 1:size(fields, 3)
+        field = fields(:, :, i);
+        
+        if mod(i, 2) == is_odd
+            image = step(hdint, field);
+        else
+            field(1:end-1, :) = field(2:end, :);
+            image = step(hdint, field);
+            image(2:end, :) = image(1:end-1, :);
+        end
+        
+        images(:, :, i) = im2uint8(image);
+    end
+
+    %{
+    images = zeros(size(fields), class(fields));
     
     fields = im2double(fields);
     mask = [0.5; 0.5];
@@ -137,6 +154,7 @@ function [images] = method2(fields, is_odd)
         
         images(:, :, i) = im2uint8(image);
     end
+    %}
 end
 
 function [images] = method3(fields, is_odd)
@@ -217,23 +235,6 @@ function [images] = method5(fields, is_odd)
         
         images(:, :, i) = im2uint8(image);
     end
-    
-    %{
-    hdint = vision.Deinterlacer('Method', 'Vertical temporal median filtering', 'TransposedInput', false);
-    for i = 1:size(fields, 3)
-        field = fields(:, :, i);
-        
-        if mod(i, 2) == is_odd
-            image = step(hdint, field);
-        else
-            field(1:end-1, :) = field(2:end, :);
-            image = step(hdint, field);
-            image(2:end, :) = image(1:end-1, :);
-        end
-        
-        images(:, :, i) = im2uint8(image);
-    end
-    %}
 end
 
 function [images] = method6(fields, is_odd)
@@ -258,8 +259,24 @@ function [images] = method6(fields, is_odd)
     end
 end
 
-%{
 function [images] = method7(fields, is_odd)
+    images = zeros(size(fields), class(fields));
+    hdint = vision.Deinterlacer('Method', 'Vertical temporal median filtering', 'TransposedInput', false);
+    for i = 1:size(fields, 3)
+        field = fields(:, :, i);
+        
+        if mod(i, 2) == is_odd
+            image = step(hdint, field);
+        else
+            field(1:end-1, :) = field(2:end, :);
+            image = step(hdint, field);
+            image(2:end, :) = image(1:end-1, :);
+        end
+        
+        images(:, :, i) = im2uint8(image);
+    end
+
+    %{
     c = size(fields, 3);
     images = zeros(size(fields), class(fields));
 
@@ -316,8 +333,8 @@ function [images] = method7(fields, is_odd)
         images(2:2:end, :, c) = fields(2:2:end, :, c);
         images(1:2:end, :, c) =  fields(1:2:end, :, c-1);
     end
+    %}
 end
-%}
 
 function [map] = calc_diff_map(frame1, frame2)
     map = abs(frame1 - frame2);
