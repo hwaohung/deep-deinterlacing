@@ -1,23 +1,27 @@
-%filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\akiyo_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\container_cif';
-filename = 'C:\Users\Johnny\Desktop\Master thesis\data\test\stefan_sif';
+%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\akiyo_cif';
+%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\container_cif';
+%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\foreman_cif';
+filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\stefan_cif';
 filename = [filename, '.avi'];
 
 folder = 'Test';
 filepaths = dir(fullfile(folder, '*.avi'));
-testFramesCnt = 30;
+testFramesCnt = 300;
 
 clear frames1 frames2;
 
 gnd_frames = get_video_frames(filename, testFramesCnt);
 
 tic;
-frames1 = self_validation(gnd_frames);
+for i = 1:size(gnd_frames, 3)
+    frames1(:, :, i) = deinterlace(gnd_frames(:, :, i), mod(i, 2));
+end
 disp(toc);
 
-for i = 1:size(gnd_frames, 3)
-    frames2(:, :, i) = deinterlace(gnd_frames(:, :, i), mod(i, 2));
-end
+tic;
+frames2 = self_validation(gnd_frames, 6, 1);
+%frames2 = DeepTemp(gnd_frames, 100000, 1, 1);
+disp(toc);
 
 for i = 1:size(gnd_frames, 3)
     psnrs1(i) = compute_psnr(gnd_frames(:, :, i), frames1(:, :, i));

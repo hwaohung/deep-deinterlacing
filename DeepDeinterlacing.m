@@ -59,12 +59,18 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
         net_model = [net_model 'DeepDeinterlacing_mat11.prototxt'];
     end
     
+    %{
     % odd
     net_weights1 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(1).caffemodel'];
     net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(1).caffemodel'];
     % even
     net_weights3 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(3).caffemodel'];
     net_weights4 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(3).caffemodel'];
+    %}
+    net_weights1 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
+    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
+    net_weights3 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
+    net_weights4 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
 
     if ~exist(net_weights1, 'file') || ~exist(net_weights2, 'file') || ~exist(net_weights3, 'file') || ~exist(net_weights4, 'file')
         error('Please check caffemodel is exist or not.');
@@ -94,8 +100,6 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
         cols(end+1) = wid-w+1;
     end
     
-    %im_hs = zeros(size(frames));
-    %im_h_dsns = zeros(size(frames));
     im_hs = im2double(frames);
     im_h_dsns = im2double(frames);
     for i = 1:size(input_patches, 4)/eachCnt
@@ -137,43 +141,6 @@ function [im_hs, im_h_dsns] = patch_deinterlace(frames, input_channels, iter)
                 im_h_dsns(row_indexes, col:col+w-1, i) = im_h_dsn_patches1(:, :, j);
             end
         end
-        
-        %{
-        s_row = 1;
-        s_col = 1;
-        next = false;
-        for j = 1:eachCnt
-            if s_col > size(frames, 2)
-                s_row = s_row + stride;
-                s_col = 1;
-            elseif s_col + w - 1 > size(frames, 2)
-                s_col = size(frames, 2) - w + 1;
-                next = true;
-            end
-
-            if s_row + h - 1 > size(frames, 1)
-                s_row = size(frames, 1) - h + 1;
-            end
-            
-            % TODO
-            tmp = abs(input_patches(:, :, 1, (i-1)*eachCnt+j) - input_patches(:, :, 3, (i-1)*eachCnt+j));
-            if mean(tmp(:)) <= 0.0318
-                im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patches1(:, :, j);
-                im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patches1(:, :, j);
-            else
-                im_hs(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_patches2(:, :, j);
-                im_h_dsns(s_row:s_row+h-1, s_col:s_col+w-1, i) = im_h_dsn_patches2(:, :, j);
-            end
-                                    
-            if next
-                s_row = s_row + stride;
-                s_col = 1;
-                next = false;
-            else
-                s_col = s_col + stride;
-            end
-        end
-        %}
     end
 end
 

@@ -1,6 +1,9 @@
 % is_odd: 1(default) => odd, even, ...
 % is_odd: 0 => even, odd, ...
 function [deinterlaced_frames] = self_validation(frames, methods, is_odd)
+    %deinterlaced_frames = method6(frames, is_odd);
+    %return;
+
     [hei, wid, cnt] = size(frames);
     
     field_map = uint8(zeros(hei/2, wid, cnt, methods));
@@ -77,6 +80,7 @@ function [images] = deinterlace(fields, is_odd, method)
         images = method5(fields, is_odd);
     elseif method == 6
         images = method6(fields, is_odd);
+    end
     %{
     elseif method == 7
         %images = DeepTemp(fields, 100000, is_odd, 2);
@@ -116,23 +120,6 @@ end
 
 function [images] = method2(fields, is_odd)
     images = zeros(size(fields), class(fields));
-    hdint = vision.Deinterlacer('Method', 'Linear interpolation', 'TransposedInput', false);
-    for i = 1:size(fields, 3)
-        field = fields(:, :, i);
-        
-        if mod(i, 2) == is_odd
-            image = step(hdint, field);
-        else
-            field(1:end-1, :) = field(2:end, :);
-            image = step(hdint, field);
-            image(2:end, :) = image(1:end-1, :);
-        end
-        
-        images(:, :, i) = im2uint8(image);
-    end
-
-    %{
-    images = zeros(size(fields), class(fields));
     
     fields = im2double(fields);
     mask = [0.5; 0.5];
@@ -154,7 +141,6 @@ function [images] = method2(fields, is_odd)
         
         images(:, :, i) = im2uint8(image);
     end
-    %}
 end
 
 function [images] = method3(fields, is_odd)
