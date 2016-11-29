@@ -106,7 +106,8 @@ end
 function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2patch(frames, window, stride, input_channels, is_odd)
     [hei, wid, cnt] = size(frames);
     
-    deinterlaced_fields = self_validation(frames, 6, is_odd);
+    %deinterlaced_fields = self_validation(frames, 6, is_odd);
+    deinterlaced_fields = deinterlace(frames, 1);
     
     frames = im2double(frames);
     deinterlaced_fields = im2double(deinterlaced_fields);
@@ -142,6 +143,29 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
             post = deinterlaced_fields(:, :, frameCnt+1);
         end
         
+        %{
+        tic;
+        [new_prev, new_post] = refine_for_input(curr, prev, post, mod(frameCnt, 2));
+        disp(toc);
+        
+        padding = 2;
+        if mod(frameCnt, 2) == is_odd
+            row_indexes = 2+padding:2:size(curr, 1)-padding;
+        else
+            row_indexes = 1+padding:2:size(curr, 1)-padding;
+        end
+        
+        for row = row_indexes
+            for col = 1+padding:size(curr, 2)-padding
+                if abs(prev(row, col, :) - post(row, col, :)) > 0.0340
+                    prev(row, col, :) = new_prev(row, col, :);
+                    post(row, col, :) = new_post(row, col, :);
+                    abc_count = abc_count + 1;
+                end
+            end
+        end
+        %}
+        
         for row = rows
             odd_row_indexes = (row-1+1:2:row+window(1)-1);
             even_row_indexes = (row-1+2:2:row+window(1)-1);
@@ -163,7 +187,7 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
                                
                 col_indexes = (col:col + window(2) - 1);
                 
-                if mod(frameCnt, 2)
+                if mod(frameCnt, 2) == is_odd
                     input_patches(2:4:end, :, :, count) = prev(even_row_indexes, col_indexes);
                     input_patches(3:4:end, :, :, count) = curr(even_row_indexes, col_indexes);
                     input_patches(4:4:end, :, :, count) = post(even_row_indexes, col_indexes);
@@ -184,9 +208,54 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
                     label_patches(:, :, :, count) = frames(odd_row_indexes, col_indexes, frameCnt);
                     deinterlaced_patches(:, :, :, count) = curr(odd_row_indexes, col_indexes);
                 end
+                
+                %{
+                tmp = abs(input_patches(2:4:end, :, :, count) - input_patches(4:4:end, :, :, count));
+                % mean columns
+                tmp = mean(tmp, 2); 
+                
+                % TODO: row indexes
+                row_indexes;
+                                
+                % prev
+                indexes = 2:4:size(input_patches, 1);
+                indexes = indexes(tmp > 0.0340);
+                %}
             end            
         end
-    end 
+    end
+end
+
+function [new_prev, new_post] = refine_for_input(curr, prev, post, is_odd)
+    matcher = vision.TemplateMatcher('ROIInputPort', true);
+
+    block = [9, 9];
+    % padding must be even
+    window = [5, 5];
+    padding = (window(1)-1) / 2;
+
+    new_prev = prev(:, :, :);
+    new_post = post(:, :, :);
+    
+    % Index of curr deinterlaced field
+    if is_odd
+        row_indexes = 2+padding:2:size(curr, 1)-padding;
+    else
+        row_indexes = 1+padding:2:size(curr, 1)-padding;
+    end
+           
+    % TODO: Process outer
+    for row = row_indexes
+        for col = 1+padding:size(curr, 2)-padding
+            m_patch = curr(row-padding:row+padding, col-padding:col+padding);
+            % TODO: Change the function only scan available row.
+            loc = step(matcher, prev, m_patch, [col-(block(2)-1)/2, row-(block(1)-1)/2, block(2), block(1)]);
+            new_prev(row, col, :) = prev(loc(1, 2), loc(1, 1), :);
+            
+            loc = step(matcher, post, m_patch, [col-(block(2)-1)/2, row-(block(1)-1)/2, block(2), block(1)]);
+            new_post(row, col, :) = post(loc(1, 2), loc(1, 1), :);
+        end
+    end
 end
 
 function [im_h_patches, im_h_dsn_patches] = predict_patches(net, input_patches, label_patches, deinterlaced_patches)

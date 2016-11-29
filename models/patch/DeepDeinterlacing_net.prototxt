@@ -52,7 +52,7 @@ layer {  name: "conv1_3"  type: "Convolution"  bottom: "conv1_2"  top: "conv1_3"
   param {    lr_mult: 0.1  }
   convolution_param {
     num_output: 7
-	kernel_w: 4    stride_w: 3    pad_w: 0
+	kernel_w: 5    stride_w: 4    pad_w: 0
 	kernel_h: 3    stride_h: 1    pad_h: 1
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
@@ -62,7 +62,7 @@ layer {  name: "relu1_3"  type: "ReLU"  bottom: "conv1_3"  top: "conv1_3" }
 
 ############## Output ##############
 layer {
-  name: "conv-dsn"  type: "Convolution"  bottom: "conv1_3"  top: "output-combine"
+  name: "conv-dsn"  type: "Convolution"  bottom: "conv1_3"  top: "conv-dsn"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
@@ -70,6 +70,16 @@ layer {
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
+}
+
+# residual learning
+layer {
+  name: "eltwise-dsn-residual"
+  type: "Eltwise"
+  bottom: "conv-dsn"
+  bottom: "deinterlace"
+  top: "output-combine"
+  eltwise_param { operation: SUM }
 }
 
 ## loss

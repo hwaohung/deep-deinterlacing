@@ -5,7 +5,7 @@ function [] = generate_data()
     %% Settings
     patch_method = 1;
     is_train_data = 1;
-    input_channels = 3;
+    input_channels = 4;
     testFramesCnt = 100;
     
     if patch_method == 1
@@ -86,10 +86,12 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
     %% TODO: Use only related field
     %{
     for i = size(input_data, 4):-1:1
-        tmp = abs(input_data(:, :, 1, i) - input_data(:, :, 3, i));
+        tmp = abs(input_data(2:4:end, :, :, i) - input_data(4:4:end, :, :, i));
         diffs(i) = mean(tmp(:));
     end
+    %}
     
+    %{
     disp(mean(diffs))
     indexes = diffs > 0.0338;
     input_data = input_data(:, :, :, indexes(:));
