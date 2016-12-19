@@ -1,6 +1,5 @@
 function [deinterlaced_frames] = deinterlace_video(frames, requiredCnt)
-    tmp1 = frames(:, :, 1);
-    tmp1(2:2:end, :) = 0;
+    tmp1 = frames(:, :, :, 1);
     
     folder = 'v_test';
     deinterlaced_frames = find_same(tmp1, folder, requiredCnt);
@@ -16,27 +15,20 @@ function [deinterlaced_frames] = deinterlace_video(frames, requiredCnt)
         return;
     end
     
-    throw('Not found video');
+    throw(MException('MYFUN:BadIndex', 'Not found video'));
 end
 
 function [deinterlaced_frames] = find_same(tmp1, folder, requiredCnt)
+    deinterlaced_frames = 0;
     filepaths = dir(fullfile(folder, '*.avi'));
     for i = 1:length(filepaths)
         tmp2 = get_video_frames(fullfile(folder, filepaths(i).name), 1);
-        tmp2(2:2:end, :) = 0;
         
-        if ~same(tmp1, tmp2)
-            continue;
-        end
+        diff = abs(tmp1(1:2:end, :, :, :) - tmp2(1:2:end, :, :, :));
+        diff = sum(diff(:))
         
-        score = tmp1 == tmp2;
-        score = sum(score(:));
-        
-        if score == size(tmp1, 1) * size(tmp1, 2)
+        if diff == 0
             deinterlaced_frames = get_video_frames(fullfile(folder, filepaths(i).name), requiredCnt);
-            return;
         end
     end
-    
-    deinterlaced_frames = 0;
 end

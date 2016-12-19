@@ -1,10 +1,10 @@
 % Patch => Patch method
-function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2patch(frames, window, stride, input_channels)
-    [hei, wid, cnt] = size(frames);
+function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2patch(frames, window, stride)
+    [hei, wid, ch, cnt] = size(frames);
     
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields    
-    %deinterlaced_fields = self_validation(frames, 6, 1);
-    deinterlaced_fields = deinterlace(frames, 1);
+    %deinterlaced_fields = deinterlace(frames, 1);
+    deinterlaced_fields = deinterlace_video(frames, cnt);
     
     frames = im2double(frames);
     deinterlaced_fields = im2double(deinterlaced_fields);
@@ -21,30 +21,30 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
     end
     
     eachCnt = size(rows, 2) * size(cols, 2);
-    input_patches = zeros((window(1)/2)*4+1, window(2), 1, cnt*eachCnt);
-    label_patches = zeros(window(1)/2, window(2), 1, cnt*eachCnt);
-    deinterlaced_patches = zeros(window(1)/2, window(2), 1, cnt*eachCnt);
+    input_patches = zeros((window(1)/2)*4+1, window(2), 3, cnt*eachCnt);
+    label_patches = zeros(window(1)/2, window(2), 3, cnt*eachCnt);
+    deinterlaced_patches = zeros(window(1)/2, window(2), 3, cnt*eachCnt);
     count = 0;
     
     %% Generate data pacth
     for frameCnt = 1:cnt
-        curr = deinterlaced_fields(:, :, frameCnt);
+        curr = deinterlaced_fields(:, :, :, frameCnt);
         if frameCnt == 1
-            prev = deinterlaced_fields(:, :, frameCnt+1);
-            post = deinterlaced_fields(:, :, frameCnt+1);
+            prev = deinterlaced_fields(:, :, :, frameCnt+1);
+            post = deinterlaced_fields(:, :, :, frameCnt+1);
         elseif frameCnt == cnt
-            prev = deinterlaced_fields(:, :, frameCnt-1);
-            post = deinterlaced_fields(:, :, frameCnt-1);
+            prev = deinterlaced_fields(:, :, :, frameCnt-1);
+            post = deinterlaced_fields(:, :, :, frameCnt-1);
         else
-            prev = deinterlaced_fields(:, :, frameCnt-1);
-            post = deinterlaced_fields(:, :, frameCnt+1);
+            prev = deinterlaced_fields(:, :, :, frameCnt-1);
+            post = deinterlaced_fields(:, :, :, frameCnt+1);
         end
         
+        %{
         tic;
         [new_prev, new_post] = refine_for_input(curr, prev, post, mod(frameCnt, 2));
-        disp(toc);
+        disp(toc);       
         
-        %{
         if mod(frameCnt, 2)
             indexes = 1:2:size(curr, 1);
         else
@@ -58,7 +58,6 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
         figure(2);
         post(indexes, :, :) = curr(indexes, :, :);
         imshow(post);
-        %}
         
         padding = 2;
         if mod(frameCnt, 2)
@@ -75,64 +74,62 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
                 end
             end
         end
+        %}
         
-        for row = rows
-            odd_row_indexes = (row-1+1:2:row+window(1)-1);
-            even_row_indexes = (row-1+2:2:row+window(1)-1);
+        if mod(frameCnt, 2)
+            for row = rows
+                odd_row_indexes = (row:2:row+window(1)-1);
+                even_row_indexes = (row+1:2:row+window(1)-1);
             
-            if odd_row_indexes(end) + 2 > hei
-                spec_end = odd_row_indexes(end);
-            else
-                spec_end = odd_row_indexes(end) + 2;
-            end
-            
-            if even_row_indexes(1) - 2 < 1
-                spec_first = even_row_indexes(1);
-            else
-                spec_first = even_row_indexes(1) - 2;
-            end
-            
-            for col = cols
-                count = count + 1;
-                               
-                col_indexes = (col:col + window(2) - 1);
-                
-                if mod(frameCnt, 2)
-                    input_patches(2:4:end, :, :, count) = prev(even_row_indexes, col_indexes);%
-                    input_patches(3:4:end, :, :, count) = curr(even_row_indexes, col_indexes);
-                    input_patches(4:4:end, :, :, count) = post(even_row_indexes, col_indexes);%
-                    
-                    input_patches(1:4:end-4, :, :, count) = curr(odd_row_indexes, col_indexes);
-                    input_patches(end, :, :, count) = curr(spec_end, col_indexes);
-                                                            
-                    label_patches(:, :, :, count) = frames(even_row_indexes, col_indexes, frameCnt);
-                    deinterlaced_patches(:, :, :, count) = curr(even_row_indexes, col_indexes);
+                % odd scan bottom boundary
+                if odd_row_indexes(end) + 2 > hei
+                    spec_end = odd_row_indexes(end);
                 else
-                    input_patches(2:4:end, :, :, count) = prev(odd_row_indexes, col_indexes);%
-                    input_patches(3:4:end, :, :, count) = curr(odd_row_indexes, col_indexes);
-                    input_patches(4:4:end, :, :, count) = post(odd_row_indexes, col_indexes);%
-                    
-                    input_patches(5:4:end, :, :, count) = curr(even_row_indexes, col_indexes);
-                    input_patches(1, :, :, count) = curr(spec_first, col_indexes);
-                                
-                    label_patches(:, :, :, count) = frames(odd_row_indexes, col_indexes, frameCnt);
-                    deinterlaced_patches(:, :, :, count) = curr(odd_row_indexes, col_indexes);
+                    spec_end = odd_row_indexes(end) + 2;
                 end
-                                               
-                % Modular NN
-                %{
-                tmp = abs(input_patches(2:4:end, :, :, count) - input_patches(4:4:end, :, :, count));
-                % mean columns
-                tmp = mean(tmp, 2); 
-                
-                % TODO: row indexes
-                row_indexes;
+            
+                for col = cols
+                    count = count + 1;
+                    col_indexes = (col:col + window(2) - 1);
+                    
+                    input_patches(2:4:end, :, :, count) = prev(even_row_indexes, col_indexes, :);
+                    input_patches(3:4:end, :, :, count) = curr(even_row_indexes, col_indexes, :);
+                    input_patches(4:4:end, :, :, count) = post(even_row_indexes, col_indexes, :);
+                    
+                    input_patches(1:4:end-4, :, :, count) = curr(odd_row_indexes, col_indexes, :);
+                    input_patches(end, :, :, count) = curr(spec_end, col_indexes, :);
+                                                            
+                    label_patches(:, :, :, count) = frames(even_row_indexes, col_indexes, :, frameCnt);
+                    deinterlaced_patches(:, :, :, count) = curr(even_row_indexes, col_indexes, :);
+                end
+            end
+        else
+            for row = rows
+                odd_row_indexes = (row:2:row+window(1)-1);
+                even_row_indexes = (row+1:2:row+window(1)-1);
+            
+                % even scan top boundary
+                if even_row_indexes(1) - 2 < 1
+                    spec_first = even_row_indexes(1);
+                else
+                    spec_first = even_row_indexes(1) - 2;
+                end
+            
+                for col = cols
+                    count = count + 1;
+                    col_indexes = (col:col + window(2) - 1);
+                    
+                    input_patches(2:4:end, :, :, count) = prev(odd_row_indexes, col_indexes, :);
+                    input_patches(3:4:end, :, :, count) = curr(odd_row_indexes, col_indexes, :);
+                    input_patches(4:4:end, :, :, count) = post(odd_row_indexes, col_indexes, :);
+                    
+                    input_patches(5:4:end, :, :, count) = curr(even_row_indexes, col_indexes, :);
+                    input_patches(1, :, :, count) = curr(spec_first, col_indexes, :);
                                 
-                % prev
-                indexes = 2:4:size(input_patches, 1);
-                indexes = indexes(tmp > 0.0340);
-                %}
-            end            
+                    label_patches(:, :, :, count) = frames(odd_row_indexes, col_indexes, :, frameCnt);
+                    deinterlaced_patches(:, :, :, count) = curr(odd_row_indexes, col_indexes, :);
+                end
+            end
         end
     end 
 end

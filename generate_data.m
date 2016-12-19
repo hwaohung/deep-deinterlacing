@@ -5,9 +5,9 @@ function [] = generate_data()
     %% Settings
     patch_method = 1;
     is_train_data = 1;
-    input_channels = 4;
     testFramesCnt = 100;
     
+    % stride, window(1) must be even(even shift for sure the same parity)
     if patch_method == 1
         window = [16, 16];
         stride = 16;
@@ -28,9 +28,9 @@ function [] = generate_data()
     filepaths = dir(fullfile(folder,'*.avi'));
     
     if patch_method == 1
-        gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFramesCnt, window, stride, input_channels);
+        gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFramesCnt, window, stride);
     else
-        gen_patch2pixel_data(folder, filepaths, savepath, chunksz, testFramesCnt, window, input_channels);
+        gen_patch2pixel_data(folder, filepaths, savepath, chunksz, testFramesCnt, window);
     end
 end
 
@@ -52,11 +52,11 @@ function [] = gen_patch2pixel_data(folder, filepaths, savepath, chunksz, testFra
     save2hdf5(savepath, chunksz, input_data, label_data);
 end
 
-function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFramesCnt, window, stride, input_channels)
+function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFramesCnt, window, stride)
     for i = 1:length(filepaths)
         frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
         
-        [input_patches1, label_patches1, deinterlaced_patches1, eachCnt] = patch2patch(frames, window, stride, input_channels);
+        [input_patches1, label_patches1, deinterlaced_patches1, eachCnt] = patch2patch(frames, window, stride);
         
         if i == 1
         	input_data = input_patches1;
@@ -68,20 +68,6 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
             deinterlaced_data = cat(4, deinterlaced_data, deinterlaced_patches1);
         end
     end
-    
-    %% Selected odd/even frame
-    %{
-    indexes = [];
-    for i = 1:size(input_data, 4)/eachCnt
-        if mod(i, 2) == 0
-            indexes = cat(2, indexes, (i-1)*eachCnt+1:i*eachCnt);
-        end
-    end
-    
-    input_data = input_data(:, :, :, indexes);
-    label_data = label_data(:, :, :, indexes);
-    deinterlaced_data = deinterlaced_data(:, :, :, indexes);
-    %}
     
     %% TODO: Use only related field
     %{
