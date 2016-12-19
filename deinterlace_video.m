@@ -25,10 +25,11 @@ function [deinterlaced_frames] = find_same(tmp1, folder, requiredCnt)
         tmp2 = get_video_frames(fullfile(folder, filepaths(i).name), 1);
         
         diff = abs(tmp1(1:2:end, :, :, :) - tmp2(1:2:end, :, :, :));
-        diff = sum(diff(:))
+        diff = sum(diff(:));
         
         if diff == 0
             deinterlaced_frames = get_video_frames(fullfile(folder, filepaths(i).name), requiredCnt);
+            break;
         end
     end
 end

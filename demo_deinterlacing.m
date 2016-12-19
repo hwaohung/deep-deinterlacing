@@ -10,36 +10,29 @@ filepaths = dir(fullfile(folder, '*.avi'));
 psnr_list = zeros(length(filepaths), 5, 1, floor(iter_max/iter_step));
 
 for i = 1:length(filepaths)
-    clear frames psnr_gcbis psnr_ds psnr_dsns psnr_fusions; 
+    clear frames psnr_inits psnr_dds psnr_fusions; 
     frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
+    im_inits = deinterlace_video(frames, testFramesCnt);
     
     for iter_index = 10:floor(iter_max/iter_step)
         iter = iter_index * iter_step;
-        [im_hs, im_h_dsns, im_h_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
+        [im_dds, im_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
         
-        psnr_gcbis = size(1, size(frames, 3));
-        psnr_d = size(1, size(frames, 3));
-        psnr_dsns = size(1, size(frames, 3));
-        psnr_fusions = size(1, size(frames, 3));
-        for frameCnt = 1:size(frames, 3)
-            frame = frames(:, :, frameCnt);
-            [im_b] = interlace(frame, mod(frameCnt, 2));
-            im_b = deinterlace(im_b, mod(frameCnt, 2));
-            im_h = im_hs(:, :, frameCnt);
-            im_h_dsn = im_h_dsns(:, :, frameCnt);
-            im_h_fusion = im_h_fusions(:, :, frameCnt);
-                                   
-            psnr_gcbi = compute_psnr(frame, im_b);
-            psnr_d = compute_psnr(frame, im_h);
-            psnr_dsn = compute_psnr(frame, im_h_dsn);
-            psnr_fusion = compute_psnr(frame, im_h_fusion);
+        cnt = size(frames, 4);  
+        psnr_inits = zeros(1, cnt);
+        psnr_dds = zeros(1, cnt);
+        psnr_fusions = zeros(1, cnt);
+        for frameCnt = 1:cnt
+            frame = frames(:, :, :, frameCnt);
+            im_init = im_inits(:, :, :, frameCnt);
+            im_dd = im_dds(:, :, :, frameCnt);
+            im_fusion = im_fusions(:, :, :, frameCnt);
             
-            psnr_gcbis(frameCnt) = psnr_gcbi;
-            psnr_ds(frameCnt) = psnr_d;
-            psnr_dsns(frameCnt) = psnr_dsn;
-            psnr_fusions(frameCnt) = psnr_fusion;
+            psnr_inits(frameCnt) = compute_psnr(frame, im_init);
+            psnr_dds(frameCnt) = compute_psnr(frame, im_dd);
+            psnr_fusions(frameCnt) = compute_psnr(frame, im_fusion);
             
-            if frameCnt == 1
+            if frameCnt == 2
                 fig = findobj('Tag', 'My1stFigure');
                 if isempty(fig)
                     fig = figure('Tag', 'My1stFigure', 'Name','PSNR Comparison', 'Position', [100, 100, 1049, 895]);
@@ -47,30 +40,16 @@ for i = 1:length(filepaths)
                 figure(fig);             
                 
                 subplot(2, 2, 1), imshow(frame); title('Ground truth');
-                subplot(2, 2, 2), imshow(im_b); title([num2str(iter) '000 Linear Interpolation: ' num2str(psnr_gcbi)]);
-                subplot(2, 2, 3), imshow(im_h); title([num2str(iter) '000 DeepDeinterlacing: ' num2str(psnr_d)]);
-                subplot(2, 2, 4), imshow(im_h_dsn); title([num2str(iter) '000 DeepDeinterlacing(DSN): ' num2str(psnr_dsn)]);
-                pause(0.1);
+                subplot(2, 2, 2), imshow(im_init); title([num2str(iter) '000 Init Deinterlace: ' num2str(psnr_inits(frameCnt))]);
+                subplot(2, 2, 3), imshow(im_dd); title([num2str(iter) '000 Deep Deinterlace: ' num2str(psnr_dds(frameCnt))]);
+                subplot(2, 2, 4), imshow(im_fusion); title([num2str(iter) '000 Deinterlace Fusion: ' num2str(psnr_fusions(frameCnt))]);
             end
         end
         
-        %{
-        v = VideoWriter(num2str(i), 'Grayscale AVI');
-        open(v);
-    
-        [rowCount, colCount, frameCount] = size(im_hs);
-        for tt = 1:frameCount
-            writeVideo(v, im_hs(:,:, tt));
-        end
-        
-        close(v);
-        %}
-        
-        psnr_list(i,1,:,iter_index) = iter;
-        psnr_list(i,2,:,iter_index) = mean(psnr_gcbis(:));
-        psnr_list(i,3,:,iter_index) = mean(psnr_ds(:));
-        psnr_list(i,4,:,iter_index) = mean(psnr_dsns(:));
-        psnr_list(i,5,:,iter_index) = mean(psnr_fusion(:));
+        psnr_list(i, 1, :, iter_index) = iter;
+        psnr_list(i, 2, :, iter_index) = mean(psnr_inits(:));
+        psnr_list(i, 3, :, iter_index) = mean(psnr_dds(:));
+        psnr_list(i, 4, :, iter_index) = mean(psnr_fusions(:));
     end
 end
 
@@ -80,16 +59,14 @@ for iter_index = 1:floor(iter_max/iter_step)
     avg_psnr_list(2, iter_index) = mean(psnr_list(:, 2, :, iter_index));
     avg_psnr_list(3, iter_index) = mean(psnr_list(:, 3, :, iter_index));
     avg_psnr_list(4, iter_index) = mean(psnr_list(:, 4, :, iter_index));
-    avg_psnr_list(5, iter_index) = mean(psnr_list(:, 5, :, iter_index));
 end
 
 %% Display iteration PSNR result
 plot(avg_psnr_list(1, :), avg_psnr_list(2, :), 'k',...
      avg_psnr_list(1, :), avg_psnr_list(3, :), 'r',...
-     avg_psnr_list(1, :), avg_psnr_list(4, :), 'g',...
-     avg_psnr_list(1, :), avg_psnr_list(5, :), 'b');
+     avg_psnr_list(1, :), avg_psnr_list(4, :), 'g');
 
-title('Deep Deinterlacing');
+title('PSNR Comparison');
 xlabel('Iteration');
 ylabel('PSNR');
-legend('Linear', 'DeepDeinterlacing', 'DeepDeinterlacing(DSN)', 'DeepDeinterlacing(Fusion)');
+legend('Init Deinterlace', 'Deep Deinterlace', 'Deinterlace Fusion');

@@ -1,19 +1,19 @@
 name: "DeepDeinterlacing"
 input: "input"
 input_dim: 64
-input_dim: 1
+input_dim: 3
 input_dim: 16
 input_dim: 33
 
 input: "label"
 input_dim: 64
-input_dim: 1
+input_dim: 3
 input_dim: 16
 input_dim: 8
 
 input: "deinterlace"
 input_dim: 64
-input_dim: 1
+input_dim: 3
 input_dim: 16
 input_dim: 8
 
@@ -23,9 +23,7 @@ layer {  name: "conv1_1"  type: "Convolution"  bottom: "input"  top: "conv1_1"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 64
-	kernel_w: 5    stride_w: 1    pad_w: 2
-	kernel_h: 5    stride_h: 1    pad_h: 2
+    num_output: 5    kernel_size: 3    stride: 1    pad: 1
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
@@ -36,9 +34,7 @@ layer {  name: "conv1_2"  type: "Convolution"  bottom: "conv1_1"  top: "conv1_2"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 32
-	kernel_w: 5    stride_w: 1    pad_w: 2
-	kernel_h: 5    stride_h: 1    pad_h: 2
+    num_output: 3    kernel_size: 3    stride: 1    pad: 1
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
@@ -49,9 +45,9 @@ layer {  name: "conv1_3"  type: "Convolution"  bottom: "conv1_2"  top: "conv1_3"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 16
+    num_output: 7
 	kernel_w: 5    stride_w: 4    pad_w: 0
-	kernel_h: 5    stride_h: 1    pad_h: 2
+	kernel_h: 3    stride_h: 1    pad_h: 1
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
@@ -64,7 +60,7 @@ layer {
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 1    kernel_size: 1    stride: 1    pad: 0
+    num_output: 3    kernel_size: 1    stride: 1    pad: 0
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }

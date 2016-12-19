@@ -4,7 +4,7 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 1;
-    is_train_data = 1;
+    is_train_data = 0;
     testFramesCnt = 100;
     
     % stride, window(1) must be even(even shift for sure the same parity)
