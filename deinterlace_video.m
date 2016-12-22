@@ -1,25 +1,31 @@
-function [deinterlaced_frames] = deinterlace_video(frames, requiredCnt)
+function [deinterlaced_frames, prpo_frames] = deinterlace_video(frames, requiredCnt)
     tmp1 = frames(:, :, :, 1);
     
     folder = 'v_test';
-    deinterlaced_frames = find_same(tmp1, folder, requiredCnt);
+    filename = find_same(tmp1, folder);
     
-    if size(frames, 1) == size(deinterlaced_frames, 1)
+    prefix = 'prpo_';
+    
+    if filename ~= 0
+        deinterlaced_frames = get_video_frames(fullfile(folder, filename), requiredCnt);
+        prpo_frames = get_video_frames(fullfile(folder, [prefix filename]), requiredCnt);
         return;
     end
     
     folder = 'v_train';
-    deinterlaced_frames = find_same(tmp1, folder, requiredCnt);
+    filename = find_same(tmp1, folder);
     
-    if size(frames, 1) == size(deinterlaced_frames, 1)
+    if filename ~= 0
+        deinterlaced_frames = get_video_frames(fullfile(folder, filename), requiredCnt);
+        prpo_frames = get_video_frames(fullfile(folder, [prefix filename]), requiredCnt);
         return;
     end
     
     throw(MException('MYFUN:BadIndex', 'Not found video'));
 end
 
-function [deinterlaced_frames] = find_same(tmp1, folder, requiredCnt)
-    deinterlaced_frames = 0;
+function [filename] = find_same(tmp1, folder)
+    filename = 0;
     filepaths = dir(fullfile(folder, '*.avi'));
     for i = 1:length(filepaths)
         tmp2 = get_video_frames(fullfile(folder, filepaths(i).name), 1);
@@ -28,7 +34,7 @@ function [deinterlaced_frames] = find_same(tmp1, folder, requiredCnt)
         diff = sum(diff(:));
         
         if diff == 0
-            deinterlaced_frames = get_video_frames(fullfile(folder, filepaths(i).name), requiredCnt);
+            filename = filepaths(i).name;
             break;
         end
     end

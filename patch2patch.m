@@ -4,10 +4,11 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
     
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields    
     %deinterlaced_fields = deinterlace(frames, 1);
-    deinterlaced_fields = deinterlace_video(frames, cnt);
+    [deinterlaced_fields, prpo_fields] = deinterlace_video(frames, cnt);
     
     frames = im2double(frames);
     deinterlaced_fields = im2double(deinterlaced_fields);
+    prpo_fields = im2double(prpo_fields);
     
     %% Initialization   
     rows = (1:stride:hei-window(1)+1);
@@ -29,6 +30,7 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
     %% Generate data pacth
     for frameCnt = 1:cnt
         curr = deinterlaced_fields(:, :, :, frameCnt);
+        prpo_field = prpo_fields(:, :, :, frameCnt);
         if frameCnt == 1
             prev = deinterlaced_fields(:, :, :, frameCnt+1);
             post = deinterlaced_fields(:, :, :, frameCnt+1);
@@ -92,9 +94,11 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
                     count = count + 1;
                     col_indexes = (col:col + window(2) - 1);
                     
-                    input_patches(2:4:end, :, :, count) = prev(even_row_indexes, col_indexes, :);
+                    %input_patches(2:4:end, :, :, count) = prev(even_row_indexes, col_indexes, :);
+                    input_patches(2:4:end, :, :, count) = prpo_field(even_row_indexes-1, col_indexes, :);
                     input_patches(3:4:end, :, :, count) = curr(even_row_indexes, col_indexes, :);
-                    input_patches(4:4:end, :, :, count) = post(even_row_indexes, col_indexes, :);
+                    input_patches(4:4:end, :, :, count) = prpo_field(even_row_indexes, col_indexes, :);
+                    %input_patches(4:4:end, :, :, count) = post(even_row_indexes, col_indexes, :);
                     
                     input_patches(1:4:end-4, :, :, count) = curr(odd_row_indexes, col_indexes, :);
                     input_patches(end, :, :, count) = curr(spec_end, col_indexes, :);
@@ -119,9 +123,11 @@ function [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2p
                     count = count + 1;
                     col_indexes = (col:col + window(2) - 1);
                     
-                    input_patches(2:4:end, :, :, count) = prev(odd_row_indexes, col_indexes, :);
+                    %input_patches(2:4:end, :, :, count) = prev(odd_row_indexes, col_indexes, :);
+                    input_patches(2:4:end, :, :, count) = prpo_field(odd_row_indexes, col_indexes, :);
                     input_patches(3:4:end, :, :, count) = curr(odd_row_indexes, col_indexes, :);
-                    input_patches(4:4:end, :, :, count) = post(odd_row_indexes, col_indexes, :);
+                    input_patches(4:4:end, :, :, count) = prpo_field(odd_row_indexes+1, col_indexes, :);
+                    %input_patches(4:4:end, :, :, count) = post(odd_row_indexes, col_indexes, :);
                     
                     input_patches(5:4:end, :, :, count) = curr(even_row_indexes, col_indexes, :);
                     input_patches(1, :, :, count) = curr(spec_first, col_indexes, :);
