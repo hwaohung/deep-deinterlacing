@@ -9,8 +9,8 @@ function [] = generate_data()
     
     % stride, window(1) must be even(even shift for sure the same parity)
     if patch_method == 1
-        window = [8, 8];
-        stride = 8;
+        window = [16, 16];
+        stride = 16;
     else
         window = 3;
     end

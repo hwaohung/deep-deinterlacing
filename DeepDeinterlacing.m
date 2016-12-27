@@ -103,9 +103,6 @@ function [im_dds, im_fusions] = patch_deinterlace(frames, iter)
                 j = j + 1;
                 col_indexes = (col:col+w-1);
                 
-                %im_dds(row_indexes, col_indexes, :, i) = im_dd_patches2(:, :, :, j);
-                %im_fusions(row_indexes, col_indexes, :, i) = im_dd_patches2(:, :, :, j);
-                
                 if flag(:, :, :, j) < Var.T
                     im_dds(row_indexes, col_indexes, :, i) = im_dd_patches1(:, :, :, j);
                     im_fusions(row_indexes, col_indexes, :, i) = im_dd_patches1(:, :, :, j);
