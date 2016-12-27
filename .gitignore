@@ -1,6 +1,7 @@
 Test/
 Train/
 models/
+GenData/*
 *.h5
 *.asv
 *.swp

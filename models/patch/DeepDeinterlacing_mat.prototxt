@@ -2,20 +2,20 @@ name: "DeepDeinterlacing"
 input: "input"
 input_dim: 64
 input_dim: 3
-input_dim: 16
-input_dim: 33
+input_dim: 8
+input_dim: 17
 
 input: "label"
 input_dim: 64
 input_dim: 3
-input_dim: 16
 input_dim: 8
+input_dim: 4
 
 input: "deinterlace"
 input_dim: 64
 input_dim: 3
-input_dim: 16
 input_dim: 8
+input_dim: 4
 
 
 ## conv1

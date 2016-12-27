@@ -51,8 +51,8 @@ function [im_dds, im_fusions] = patch_deinterlace(frames, iter)
     net_model = [model_dir 'patch/'];
     net_model = [net_model 'DeepDeinterlacing_mat.prototxt'];
     
-    net_weights1 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
-    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '.caffemodel'];
+    net_weights1 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(1).caffemodel'];
+    net_weights2 = [model_dir 'snapshots/snapshot_iter_' num2str(iter) '(2).caffemodel'];
 
     if ~exist(net_weights1, 'file') || ~exist(net_weights2, 'file')
         error('Please check caffemodel is exist or not.');
@@ -61,7 +61,7 @@ function [im_dds, im_fusions] = patch_deinterlace(frames, iter)
     net1 = caffe.Net(net_model, net_weights1, 'test');
     net2 = caffe.Net(net_model, net_weights2, 'test');
 
-    [input_patches, label_patches, deinterlaced_patches, eachCnt] = patch2patch(frames, [h w], stride);
+    [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = patch2patch(frames, [h w], stride);
     
     init_net(net1, h, w, 3, eachCnt);
     init_net(net2, h, w, 3, eachCnt);
@@ -80,6 +80,7 @@ function [im_dds, im_fusions] = patch_deinterlace(frames, iter)
     im_dds = im2double(frames);
     im_fusions = im2double(frames);
     for i = 1:size(input_patches, 4)/eachCnt
+        flag = flags(:, :, :, (i-1)*eachCnt+1:i*eachCnt);
         [im_dd_patches1] = predict_patches(net1, input_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
                                            label_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt), ...
                                            deinterlaced_patches(:, :, :, (i-1)*eachCnt+1:i*eachCnt));
@@ -102,8 +103,17 @@ function [im_dds, im_fusions] = patch_deinterlace(frames, iter)
                 j = j + 1;
                 col_indexes = (col:col+w-1);
                 
-                im_dds(row_indexes, col_indexes, :, i) = im_dd_patches1(:, :, :, j);
-                im_fusions(row_indexes, col_indexes, :, i) = im_dd_patches1(:, :, :, j);
+                %im_dds(row_indexes, col_indexes, :, i) = im_dd_patches2(:, :, :, j);
+                %im_fusions(row_indexes, col_indexes, :, i) = im_dd_patches2(:, :, :, j);
+                
+                if flag(:, :, :, j) < Var.T
+                    im_dds(row_indexes, col_indexes, :, i) = im_dd_patches1(:, :, :, j);
+                    im_fusions(row_indexes, col_indexes, :, i) = im_dd_patches1(:, :, :, j);
+                else
+                    im_dds(row_indexes, col_indexes, :, i) = im_dd_patches2(:, :, :, j);
+                    im_fusions(row_indexes, col_indexes, :, i) = im_dd_patches2(:, :, :, j);
+                end
+                
             end
         end
     end
