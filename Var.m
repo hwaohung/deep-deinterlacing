@@ -1,6 +1,6 @@
 classdef Var
    properties (Constant)
-      T = 200;
+      T = 14;
    end
    % Class code here
 end

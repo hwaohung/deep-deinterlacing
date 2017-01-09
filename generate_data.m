@@ -22,7 +22,7 @@ function [] = generate_data()
     else
         folder = 'GenData\Test';
         savepath = 'GenData\test.h5';
-        chunksz = 1024;
+        chunksz = 64;
     end
     
     filepaths = dir(fullfile(folder,'*.avi'));
@@ -70,6 +70,9 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
             flag_data = cat(4, flag_data, flags1);
         end
     end
+    
+    %a = round(flags1(:));
+    %histogram(a);
     
     % Threshold
     indexes = flags1 < Var.T;

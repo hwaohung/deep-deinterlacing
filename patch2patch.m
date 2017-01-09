@@ -47,7 +47,7 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
             prev2 = deinterlaced_fields(:, :, :, frameCnt-2);
             prev1 = deinterlaced_fields(:, :, :, frameCnt-1);
             post1 = deinterlaced_fields(:, :, :, frameCnt+1);
-            post2 = deinterlaced_fields(:, :, :, frameCnt);
+            post2 = deinterlaced_fields(:, :, :, frameCnt-2);
         elseif frameCnt == cnt
             prev2 = deinterlaced_fields(:, :, :, frameCnt-2);
             prev1 = deinterlaced_fields(:, :, :, frameCnt-1);
@@ -56,16 +56,24 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
         else
             prev2 = deinterlaced_fields(:, :, :, frameCnt-2);
             prev1 = deinterlaced_fields(:, :, :, frameCnt-1);
-            post1 = deinterlaced_fields(:, :, :, frameCnt-1);
-            post2 = deinterlaced_fields(:, :, :, frameCnt-2);
+            post1 = deinterlaced_fields(:, :, :, frameCnt+1);
+            post2 = deinterlaced_fields(:, :, :, frameCnt+2);
         end
         
+        %{
         t1 = rgb2gray(curr) * 255;
         t2 = rgb2gray(prev2) * 255;
         t3 = rgb2gray(post2) * 255;
         
         lfmt1 = (t1 - t2) .^ 2;
         lfmt2 = (t1 - t3) .^ 2;
+        %}
+        
+        t1 = rgb2gray(prev1) * 255;
+        t2 = rgb2gray(post1) * 255;
+        
+        lfmt1 = abs(t1 - t2);
+        lfmt2 = lfmt1;
         
         if mod(frameCnt, 2)
             for row = rows
@@ -83,13 +91,16 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
                     count = count + 1;
                     col_indexes = (col:col + window(2) - 1);
                        
-                    lfm1 = lfmt1(odd_row_indexes, col_indexes);
-                    lfm2 = lfmt2(odd_row_indexes, col_indexes);
+                    %lfm1 = lfmt1(odd_row_indexes, col_indexes);
+                    %lfm2 = lfmt2(odd_row_indexes, col_indexes);
+                    lfm1 = lfmt1(even_row_indexes, col_indexes);
+                    lfm2 = lfmt2(even_row_indexes, col_indexes);
                     lfm1 = mean(lfm1(:));
                     lfm2 = mean(lfm2(:));
                     flags(:, :, :, count) = (lfm1 + lfm2) / 2;
                     
                     input_patches(3:4:end, :, :, count) = curr(even_row_indexes, col_indexes, :);
+                    
                     
                     if flags(:, :, :, count) < Var.T
                         input_patches(2:4:end, :, :, count) = prev1(even_row_indexes, col_indexes, :);                    
@@ -98,7 +109,7 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
                         input_patches(2:4:end, :, :, count) = prpo_field(even_row_indexes-1, col_indexes, :);
                         input_patches(4:4:end, :, :, count) = prpo_field(even_row_indexes, col_indexes, :);
                     end
-                                        
+                                                            
                     input_patches(1:4:end-4, :, :, count) = curr(odd_row_indexes, col_indexes, :);
                     input_patches(end, :, :, count) = curr(spec_end, col_indexes, :);
                                                             
@@ -122,14 +133,16 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
                     count = count + 1;
                     col_indexes = (col:col + window(2) - 1);
                     
-                    lfm1 = lfmt1(even_row_indexes, col_indexes);
-                    lfm2 = lfmt2(even_row_indexes, col_indexes);
+                    %lfm1 = lfmt1(even_row_indexes, col_indexes);
+                    %lfm2 = lfmt2(even_row_indexes, col_indexes);
+                    lfm1 = lfmt1(odd_row_indexes, col_indexes);
+                    lfm2 = lfmt2(odd_row_indexes, col_indexes);
                     lfm1 = mean(lfm1(:));
                     lfm2 = mean(lfm2(:));
                     flags(:, :, :, count) = (lfm1 + lfm2) / 2;
                     
                     input_patches(3:4:end, :, :, count) = curr(odd_row_indexes, col_indexes, :);
-                    
+                                        
                     if flags(:, :, :, count) < Var.T
                         input_patches(2:4:end, :, :, count) = prev1(odd_row_indexes, col_indexes, :);                    
                         input_patches(4:4:end, :, :, count) = post1(odd_row_indexes, col_indexes, :);
