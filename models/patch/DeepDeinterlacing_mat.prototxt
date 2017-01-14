@@ -23,7 +23,7 @@ layer {  name: "conv1_1"  type: "Convolution"  bottom: "input"  top: "conv1_1"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 5    kernel_size: 3    stride: 1    pad: 1
+    num_output: 64    kernel_size: 3    stride: 1    pad: 1
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
@@ -34,7 +34,7 @@ layer {  name: "conv1_2"  type: "Convolution"  bottom: "conv1_1"  top: "conv1_2"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 3    kernel_size: 3    stride: 1    pad: 1
+    num_output: 32    kernel_size: 3    stride: 1    pad: 1
     weight_filler { type: "msra" }
     bias_filler {      type: "constant"      value: 0    }
   }
@@ -45,7 +45,7 @@ layer {  name: "conv1_3"  type: "Convolution"  bottom: "conv1_2"  top: "conv1_3"
   param {    lr_mult: 1  }
   param {    lr_mult: 0.1  }
   convolution_param {
-    num_output: 7
+    num_output: 16
 	kernel_w: 5    stride_w: 4    pad_w: 0
 	kernel_h: 3    stride_h: 1    pad_h: 1
     weight_filler { type: "msra" }

@@ -1,62 +1,113 @@
-clear all;
-
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\akiyo_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\coastguard_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\container_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\foreman_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\flower_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\hall_monitor_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\mother_daughter_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\gray\stefan_cif';
-
-
-filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\akiyo_cif';
+%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\akiyo_cif';
 %filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\coastguard_cif';
 %filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\container_cif';
-%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\foreman_cif';
+filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\foreman_cif';
 %filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\flower_cif';
 %filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\hall_monitor_cif';
 %filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\mother_daughter_cif';
-filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\stefan_cif';
+%filename = 'C:\Users\Johnny\Desktop\Master_thesis\data\test\stefan_cif';
 filename = [filename, '.avi'];
 
 folder = 'Test';
 filepaths = dir(fullfile(folder, '*.avi'));
-testFramesCnt = 30;
+testFramesCnt = 100;
 
-gnd_frames = get_video_frames(filename, testFramesCnt);
+frames = get_video_frames(filename, testFramesCnt);
 
-g1 = rgb2gray(gnd_frames(:, :, :, 1));
-mask = fspecial('gaussian', [5, 5], 10);
-interpolation = conv2(g1, mask, 'same');
-g1(1:5, 1:5)
-interpolation(1:5, 1:5)
-return;
-
-tic;
-frames1 = deinterlace(gnd_frames, 1);
-%frames1 = self_validation(gnd_frames, 4, 1);
-frames2 = frames1;
-disp(toc);
-
-frames1 = get_video_frames('C:\Users\Johnny\Desktop\Master_thesis\data\test\temp.avi', testFramesCnt);
-
-%{
-tic;
-%frames2 = self_validation(gnd_frames, 6, 1);
-%frames2 = DeepTemp(gnd_frames, 100000, 1, 1);
-disp(toc);
-%}
-
-db = psnr(gnd_frames(:, :, :, 1), gnd_frames(:, :, :, 2));
-
-for i = 1:size(gnd_frames, 4)
-    psnrs1(i) = psnr(frames1(:, :, :, i), gnd_frames(:, :, :, i));
-    psnrs2(i) = psnr(frames2(:, :, :, i), gnd_frames(:, :, :, i));
+Kps = zeros(1);
+Kns = zeros(1);
+Alls = zeros(1);
+for fCnt = 1:testFramesCnt
+    if fCnt == 1
+            prev2 = frames(:, :, :, fCnt+2);
+            prev1 = frames(:, :, :, fCnt+1);
+            post1 = frames(:, :, :, fCnt+1);
+            post2 = frames(:, :, :, fCnt+2);
+    elseif fCnt == 2
+            prev2 = frames(:, :, :, fCnt+2);
+            prev1 = frames(:, :, :, fCnt-1);
+            post1 = frames(:, :, :, fCnt+1);
+            post2 = frames(:, :, :, fCnt+2);
+    elseif fCnt == testFramesCnt-1
+            prev2 = frames(:, :, :, fCnt-2);
+            prev1 = frames(:, :, :, fCnt-1);
+            post1 = frames(:, :, :, fCnt+1);
+            post2 = frames(:, :, :, fCnt-2);
+    elseif fCnt == testFramesCnt
+            prev2 = frames(:, :, :, fCnt-2);
+            prev1 = frames(:, :, :, fCnt-1);
+            post1 = frames(:, :, :, fCnt-1);
+            post2 = frames(:, :, :, fCnt-2);
+    else
+            prev2 = frames(:, :, :, fCnt-2);
+            prev1 = frames(:, :, :, fCnt-1);
+            post1 = frames(:, :, :, fCnt+1);
+            post2 = frames(:, :, :, fCnt+2);
+    end
     
-    %ssims1(i) = ssim(frames1(:, :, :, i), gnd_frames(:, :, :, i));
-    %ssims2(i) = ssim(frames2(:, :, :, i), gnd_frames(:, :, :, i));
+    prev1 = rgb2gray(prev1);
+    curr = rgb2gray(frames(:, :, :, fCnt));
+    post1 = rgb2gray(post1);
+    
+    a = abs(prev1 - curr);
+    b = abs(post1 - curr);
+    
+    Kps(fCnt) = mean(a(:));
+    Kns(fCnt) = mean(b(:));
+    Alls(fCnt) = (Kps(fCnt) + Kns(fCnt)) / 2;
 end
 
-disp([mean(psnrs1), mean(psnrs2)]);
-%disp([mean(ssims1), mean(ssims2)]);
+psnr_list = zeros(length(filepaths), 5, 1, 10);
+
+i = 1;
+im_inits = deinterlace_video(frames, testFramesCnt);
+for iter_index = 10:10
+    iter = iter_index * 10;
+    [im_dds, im_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
+    
+    cnt = size(frames, 4);  
+    psnr_inits = zeros(1, cnt);
+    psnr_dds = zeros(1, cnt);
+    psnr_fusions = zeros(1, cnt);
+    for frameCnt = 1:testFramesCnt
+        frame = frames(:, :, :, frameCnt);
+        im_init = im_inits(:, :, :, frameCnt);
+        im_dd = im_dds(:, :, :, frameCnt);
+        im_fusion = im_fusions(:, :, :, frameCnt);
+        
+        psnr_inits(frameCnt) = compute_psnr(frame, im_init);
+        psnr_dds(frameCnt) = compute_psnr(frame, im_dd);
+        psnr_fusions(frameCnt) = compute_psnr(frame, im_fusion);
+        
+        continue;
+        
+        if frameCnt == 2
+            fig = findobj('Tag', 'My1stFigure');
+            if isempty(fig)
+                fig = figure('Tag', 'My1stFigure', 'Name','PSNR Comparison', 'Position', [100, 100, 1049, 895]);
+            end
+            figure(fig);             
+            
+            subplot(2, 2, 1), imshow(frame); title('Ground truth');
+            subplot(2, 2, 2), imshow(im_init); title([num2str(iter) '000 Init Deinterlace: ' num2str(psnr_inits(frameCnt))]);
+            subplot(2, 2, 3), imshow(im_dd); title([num2str(iter) '000 Deep Deinterlace: ' num2str(psnr_dds(frameCnt))]);
+            subplot(2, 2, 4), imshow(im_fusion); title([num2str(iter) '000 Deinterlace Fusion: ' num2str(psnr_fusions(frameCnt))]);
+        end
+    end
+    
+    psnr_list(i, 1, :, iter_index) = iter;
+    psnr_list(i, 2, :, iter_index) = mean(psnr_inits(:));
+    psnr_list(i, 3, :, iter_index) = mean(psnr_dds(:));
+    psnr_list(i, 4, :, iter_index) = mean(psnr_fusions(:));
+end
+
+%plot(1:testFramesCnt, Alls, 'k');
+plot(40:testFramesCnt, psnr_dds(40:end), 'k');
+
+%plot(40:testFramesCnt, psnr_dds(40:end), 'k', ...
+%     40:testFramesCnt, psnr_inits(40:end), 'r');
+
+%Xi = 40:0.1:testFramesCnt;
+%Yi = pchip(40:testFramesCnt,psnr_inits(40:end),Xi);
+ylim([30 46])
+xlim([40 100])

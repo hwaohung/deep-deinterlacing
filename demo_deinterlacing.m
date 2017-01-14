@@ -1,7 +1,7 @@
 clear;
 close all;
 
-iter_max = 100;
+iter_max = 50;
 iter_step = 10;
 folder = 'Test';
 testFramesCnt = 30;
@@ -14,7 +14,7 @@ for i = 1:length(filepaths)
     frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
     im_inits = deinterlace_video(frames, testFramesCnt);
     
-    for iter_index = 10:floor(iter_max/iter_step)
+    for iter_index = 1:floor(iter_max/iter_step)
         iter = iter_index * iter_step;
         [im_dds, im_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
         

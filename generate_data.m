@@ -9,8 +9,8 @@ function [] = generate_data()
     
     % stride, window(1) must be even(even shift for sure the same parity)
     if patch_method == 1
-        window = [16, 16];
-        stride = 16;
+        window = [32, 32];
+        stride = 32;
     else
         window = 3;
     end
@@ -75,7 +75,7 @@ function [] = gen_patch2patch_data(folder, filepaths, savepath, chunksz, testFra
     %histogram(a);
     
     % Threshold
-    indexes = flags1 < Var.T;
+    indexes = flag_data < Var.T;
     indexes = indexes(:);
     
     save2hdf5([savepath '.static'], chunksz, input_data(:, :, :, indexes), label_data(:, :, :, indexes), deinterlaced_data(:, :, :, indexes));

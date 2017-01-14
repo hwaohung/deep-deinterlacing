@@ -1,5 +1,5 @@
 % Patch => Patch method
-function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = patch2patch(frames, window, stride)
+function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = genTemp(frames, window, stride, static)
     [hei, wid, ch, cnt] = size(frames);
     
     %% Get frames, interlaced_fields, inv_masks, deinterlaced_fields
@@ -101,7 +101,7 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
                     
                     input_patches(3:4:end, :, :, count) = curr(even_row_indexes, col_indexes, :);
                            
-                    if flags(:, :, :, count) < Var.T
+                    if static
                         input_patches(2:4:end, :, :, count) = prev1(even_row_indexes, col_indexes, :);                    
                         input_patches(4:4:end, :, :, count) = post1(even_row_indexes, col_indexes, :);
                     else
@@ -142,7 +142,7 @@ function [input_patches, label_patches, deinterlaced_patches, flags, eachCnt] = 
                     
                     input_patches(3:4:end, :, :, count) = curr(odd_row_indexes, col_indexes, :);
                     
-                    if flags(:, :, :, count) < Var.T
+                    if static
                         input_patches(2:4:end, :, :, count) = prev1(odd_row_indexes, col_indexes, :);                    
                         input_patches(4:4:end, :, :, count) = post1(odd_row_indexes, col_indexes, :);
                     else
