@@ -10,7 +10,7 @@ filename = [filename, '.avi'];
 
 folder = 'Test';
 filepaths = dir(fullfile(folder, '*.avi'));
-testFramesCnt = 100;
+testFramesCnt = 300;
 
 frames = get_video_frames(filename, testFramesCnt);
 
@@ -57,6 +57,7 @@ for fCnt = 1:testFramesCnt
     Alls(fCnt) = (Kps(fCnt) + Kns(fCnt)) / 2;
 end
 
+return;
 psnr_list = zeros(length(filepaths), 5, 1, 10);
 
 i = 1;

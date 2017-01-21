@@ -1,20 +1,22 @@
 clear;
 close all;
 
-iter_max = 50;
+iter_max = 100;
 iter_step = 10;
 folder = 'Test';
-testFramesCnt = 30;
+testFramesCnt = 300;
 
 filepaths = dir(fullfile(folder, '*.avi'));
 psnr_list = zeros(length(filepaths), 5, 1, floor(iter_max/iter_step));
+
+filepaths = filepaths(8);
 
 for i = 1:length(filepaths)
     clear frames psnr_inits psnr_dds psnr_fusions; 
     frames = get_video_frames(fullfile(folder, filepaths(i).name), testFramesCnt);
     im_inits = deinterlace_video(frames, testFramesCnt);
     
-    for iter_index = 1:floor(iter_max/iter_step)
+    for iter_index = 10:floor(iter_max/iter_step)
         iter = iter_index * iter_step;
         [im_dds, im_fusions, running_time] = DeepDeinterlacing(frames, iter*1000);
         
@@ -31,6 +33,8 @@ for i = 1:length(filepaths)
             psnr_inits(frameCnt) = compute_psnr(frame, im_init);
             psnr_dds(frameCnt) = compute_psnr(frame, im_dd);
             psnr_fusions(frameCnt) = compute_psnr(frame, im_fusion);
+            
+            result(:, :, :, frameCnt) = im_dd;
             
             if frameCnt == 2
                 fig = findobj('Tag', 'My1stFigure');

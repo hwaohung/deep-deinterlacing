@@ -303,9 +303,9 @@ function [im_fusions] = MNN(im_nn1s, im_nn2s, frames)
                 % MNN
                 else
                     % TODO: Temp Pass
-                    if mnnm(y, x) >= Var.T 
-                        %im_fusions(y, x, :, fCnt) = frames(y, x, :, fCnt);
-                        im_fusions(y, x, :, fCnt) = im_nn2s(y, x, :, fCnt);
+                    if mnnm(y, x) >= Var.T_LFM
+                        im_fusions(y, x, :, fCnt) = frames(y, x, :, fCnt);
+                        %im_fusions(y, x, :, fCnt) = im_nn2s(y, x, :, fCnt);
                     end
                 end
             end

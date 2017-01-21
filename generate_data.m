@@ -4,13 +4,13 @@ function [] = generate_data()
     
     %% Settings
     patch_method = 1;
-    is_train_data = 1;
+    is_train_data = 0;
     testFramesCnt = 100;
     
     % stride, window(1) must be even(even shift for sure the same parity)
     if patch_method == 1
-        window = [32, 32];
-        stride = 32;
+        window = [30, 30];
+        stride = 30;
     else
         window = 3;
     end
